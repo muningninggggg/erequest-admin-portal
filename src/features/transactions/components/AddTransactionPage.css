@@ -1,0 +1,270 @@
+/* =========================================================
+   ADD TRANSACTION PAGE
+   ========================================================= */
+
+.add-transaction-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 40px 24px 70px;
+  color: #1d2d3e;
+}
+
+.add-transaction-container {
+  width: 100%;
+  max-width: 1050px;
+  margin: 0 auto;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.add-transaction-header {
+  margin-bottom: 25px;
+}
+
+.add-transaction-back-button {
+  border: none;
+  background: transparent;
+  color: #315f87;
+  padding: 0;
+  margin-bottom: 20px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-transaction-back-button:hover {
+  text-decoration: underline;
+}
+
+.add-transaction-header h1 {
+  margin: 0 0 7px;
+  color: #173f68;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.add-transaction-header p {
+  margin: 0;
+  color: #718191;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   CARD
+   ========================================================= */
+
+.add-transaction-card {
+  background: #ffffff;
+  border: 1px solid #e0e7ee;
+  border-radius: 14px;
+  padding: 30px;
+  box-shadow: 0 4px 16px rgba(30, 55, 80, 0.05);
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.add-transaction-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.add-transaction-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.add-transaction-form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.add-transaction-form-group label {
+  color: #294760;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.add-transaction-form-group input,
+.add-transaction-form-group select,
+.add-transaction-form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+
+  border: 1px solid #cad5df;
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: #1d2d3e;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.add-transaction-form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.add-transaction-form-group input:focus,
+.add-transaction-form-group select:focus,
+.add-transaction-form-group textarea:focus {
+  border-color: #3c6f9f;
+  box-shadow: 0 0 0 3px rgba(60, 111, 159, 0.1);
+}
+
+.add-transaction-form-group input:disabled,
+.add-transaction-form-group select:disabled,
+.add-transaction-form-group textarea:disabled {
+  background: #f1f4f7;
+  cursor: not-allowed;
+}
+
+.add-transaction-form-group small {
+  color: #8996a2;
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.add-transaction-error {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+
+  border: 1px solid #efcaca;
+  border-radius: 8px;
+
+  background: #fff3f3;
+  color: #a33b3b;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.add-transaction-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  margin-top: 28px;
+  padding-top: 20px;
+
+  border-top: 1px solid #edf0f3;
+}
+
+.add-transaction-cancel-button,
+.add-transaction-submit-button {
+  padding: 10px 18px;
+
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.add-transaction-cancel-button {
+  border: 1px solid #cbd5df;
+  background: #ffffff;
+  color: #536779;
+}
+
+.add-transaction-cancel-button:hover {
+  background: #f3f6f8;
+}
+
+.add-transaction-submit-button {
+  border: 1px solid #244f7c;
+  background: #244f7c;
+  color: #ffffff;
+}
+
+.add-transaction-submit-button:hover {
+  background: #193e65;
+  border-color: #193e65;
+}
+
+.add-transaction-cancel-button:disabled,
+.add-transaction-submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.add-transaction-loading {
+  padding: 35px;
+  color: #758493;
+  font-size: 14px;
+  text-align: center;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  .add-transaction-page {
+    padding: 25px 15px 50px;
+  }
+
+  .add-transaction-header h1 {
+    font-size: 25px;
+  }
+
+  .add-transaction-card {
+    padding: 20px;
+  }
+
+  .add-transaction-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .add-transaction-form-group.full-width {
+    grid-column: auto;
+  }
+
+  .add-transaction-actions {
+    flex-direction: column-reverse;
+  }
+
+  .add-transaction-actions button {
+    width: 100%;
+  }
+
+}

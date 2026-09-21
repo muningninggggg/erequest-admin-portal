@@ -1,0 +1,561 @@
+/* =========================================================
+   ANNOUNCEMENTS PAGE
+   ========================================================= */
+
+.announcements-page {
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: #f4f7fa;
+  padding: 40px 24px 70px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1d2d3e;
+}
+
+.announcements-page *,
+.announcements-page *::before,
+.announcements-page *::after {
+  box-sizing: border-box;
+}
+
+.announcements-container {
+  width: 100%;
+  max-width: 1150px;
+  margin: 0 auto;
+}
+
+
+/* =========================================================
+   BACK BUTTON
+   ========================================================= */
+
+.announcements-back-button {
+  margin: 0 0 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #315f87;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.announcements-back-button:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.announcements-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 28px;
+}
+
+.announcements-header > div {
+  flex: 1;
+}
+
+.announcements-header h1 {
+  margin: 0 0 8px;
+  color: #173f68;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.announcements-header p {
+  max-width: 650px;
+  margin: 0;
+  color: #6e7f8f;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.announcement-primary-button,
+.announcement-secondary-button,
+.announcement-edit-button,
+.announcement-status-button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+/* PRIMARY */
+
+.announcement-primary-button {
+  flex-shrink: 0;
+  border: 1px solid #244f7c;
+  background: #244f7c;
+  color: #ffffff;
+}
+
+.announcement-primary-button:hover {
+  border-color: #193e65;
+  background: #193e65;
+}
+
+
+/* SECONDARY */
+
+.announcement-secondary-button {
+  border: 1px solid #cbd5df;
+  background: #ffffff;
+  color: #43576b;
+}
+
+.announcement-secondary-button:hover {
+  background: #f3f6f8;
+}
+
+
+/* EDIT */
+
+.announcement-edit-button {
+  border: 1px solid #b9c8d6;
+  background: #ffffff;
+  color: #315a80;
+}
+
+.announcement-edit-button:hover {
+  border-color: #9eb3c5;
+  background: #eef4f8;
+}
+
+
+/* STATUS BUTTON */
+
+.announcement-status-button {
+  border: 1px solid #d2d9e0;
+  background: #ffffff;
+  color: #596b7c;
+}
+
+.announcement-status-button:hover {
+  background: #f3f6f8;
+}
+
+
+.announcement-primary-button:disabled,
+.announcement-secondary-button:disabled,
+.announcement-edit-button:disabled,
+.announcement-status-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   ERROR / SUCCESS MESSAGE
+   ========================================================= */
+
+.announcement-error,
+.announcement-success {
+  margin-bottom: 20px;
+  padding: 13px 15px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.announcement-error {
+  border: 1px solid #efcaca;
+  background: #fff3f3;
+  color: #a33b3b;
+}
+
+.announcement-success {
+  border: 1px solid #c9e4d1;
+  background: #f0f8f3;
+  color: #2f7145;
+}
+
+
+/* =========================================================
+   MAIN CARD
+   ========================================================= */
+
+.announcement-card {
+  width: 100%;
+  margin-bottom: 25px;
+  padding: 27px;
+  border: 1px solid #dfe6ed;
+  border-radius: 15px;
+  background: #ffffff;
+
+  box-shadow:
+    0 5px 18px rgba(28, 55, 80, 0.05);
+}
+
+.announcement-card > h2 {
+  margin: 0 0 22px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid #edf0f3;
+  color: #173f68;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.announcement-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.announcement-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.announcement-form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.announcement-form-group label {
+  color: #344e68;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.announcement-form-group input,
+.announcement-form-group textarea {
+  width: 100%;
+  padding: 11px 13px;
+
+  border: 1px solid #ccd6e0;
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: #1d2d3e;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  outline: none;
+}
+
+.announcement-form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.announcement-form-group input:focus,
+.announcement-form-group textarea:focus {
+  border-color: #3c6f9f;
+
+  box-shadow:
+    0 0 0 3px rgba(60, 111, 159, 0.1);
+}
+
+.announcement-form-group input:disabled,
+.announcement-form-group textarea:disabled {
+  background: #f0f3f6;
+  color: #7a8793;
+}
+
+.announcement-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+
+/* =========================================================
+   LIST HEADER
+   ========================================================= */
+
+.announcement-list-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 25px;
+
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+
+  border-bottom: 1px solid #edf0f3;
+}
+
+.announcement-list-heading h2 {
+  margin: 0 0 6px;
+  color: #173f68;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.announcement-list-heading p {
+  margin: 0;
+  color: #778695;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   LOADING / EMPTY STATE
+   ========================================================= */
+
+.announcement-state-message {
+  padding: 30px;
+
+  border: 1px dashed #ccd6df;
+  border-radius: 9px;
+
+  background: #fafbfc;
+  color: #7b8996;
+
+  font-size: 13px;
+  text-align: center;
+}
+
+
+/* =========================================================
+   ANNOUNCEMENT LIST
+   ========================================================= */
+
+.announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.announcement-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 25px;
+
+  width: 100%;
+  padding: 18px;
+
+  border: 1px solid #e0e6ec;
+  border-radius: 11px;
+
+  background: #ffffff;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.announcement-item:hover {
+  border-color: #b9cad9;
+
+  box-shadow:
+    0 5px 15px rgba(28, 55, 80, 0.06);
+}
+
+
+/* =========================================================
+   ANNOUNCEMENT CONTENT
+   ========================================================= */
+
+.announcement-item-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  min-width: 0;
+  flex: 1;
+}
+
+.announcement-order {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
+
+  flex-shrink: 0;
+
+  border-radius: 8px;
+
+  background: #e7eff6;
+  color: #315f87;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.announcement-information {
+  min-width: 0;
+  flex: 1;
+}
+
+.announcement-information h3 {
+  margin: 0 0 5px;
+  color: #203d59;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.announcement-id {
+  margin: 0 0 10px;
+  color: #8b98a5;
+  font-size: 11px;
+}
+
+.announcement-message {
+  margin: 0;
+  color: #586b7c;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.announcement-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.announcement-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 6px 11px;
+
+  border-radius: 20px;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.announcement-status.active {
+  background: #eaf6ee;
+  color: #34734a;
+}
+
+.announcement-status.inactive {
+  background: #f1f3f5;
+  color: #747d86;
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 800px) {
+
+  .announcements-page {
+    padding: 28px 18px 55px;
+  }
+
+  .announcements-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .announcements-header .announcement-primary-button {
+    width: 100%;
+  }
+
+  .announcement-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .announcement-form-group.full-width {
+    grid-column: auto;
+  }
+
+  .announcement-item {
+    flex-direction: column;
+  }
+
+  .announcement-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 520px) {
+
+  .announcements-page {
+    padding: 22px 12px 45px;
+  }
+
+  .announcements-header h1 {
+    font-size: 25px;
+  }
+
+  .announcement-card {
+    padding: 18px;
+  }
+
+  .announcement-item {
+    padding: 15px;
+  }
+
+  .announcement-form-actions {
+    flex-direction: column;
+  }
+
+  .announcement-form-actions button {
+    width: 100%;
+  }
+
+  .announcement-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .announcement-actions .announcement-status {
+    align-self: flex-start;
+  }
+
+  .announcement-actions button {
+    width: 100%;
+  }
+
+}
