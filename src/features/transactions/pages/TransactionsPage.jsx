@@ -94,6 +94,13 @@ function TransactionsPage() {
      NAVIGATION
      ========================================================= */
 
+  const handleBackToDashboard = () => {
+
+    navigate("/dashboard");
+
+  };
+
+
   const handleAddTransaction = () => {
 
     navigate("/transactions/add");
@@ -223,6 +230,35 @@ function TransactionsPage() {
     <div className="transactions-page">
 
       <div className="transactions-container">
+
+
+        {/* ===================================================
+            BACK TO DASHBOARD
+            =================================================== */}
+
+        <button
+          type="button"
+          onClick={handleBackToDashboard}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: "0",
+            marginBottom: "18px",
+            color: "#174a78",
+            fontSize: "15px",
+            fontWeight: "600",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px"
+          }}
+        >
+          <span aria-hidden="true">
+            ←
+          </span>
+
+          Back to Dashboard
+        </button>
 
 
         {/* ===================================================
