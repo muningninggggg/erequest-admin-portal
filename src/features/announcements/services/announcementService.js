@@ -4,6 +4,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp
 } from "firebase/firestore";
 
@@ -75,21 +76,18 @@ export const addAnnouncement = async (
   };
 
 
-  // Firestore automatically generates the document ID.
   const documentReference = await addDoc(
     collection(db, ANNOUNCEMENTS_COLLECTION),
     announcementData
   );
 
 
-  // Return generated ID if the page needs it.
   return documentReference.id;
 };
 
 
 /* =========================================================
    UPDATE ANNOUNCEMENT
-   Uses the existing Firestore document ID.
    ========================================================= */
 
 export const updateAnnouncement = async (
@@ -177,4 +175,33 @@ export const setAnnouncementActiveStatus = async (
 
     updatedAt: serverTimestamp()
   });
+};
+
+
+/* =========================================================
+   DELETE ANNOUNCEMENT
+   Permanently removes the announcement from Firestore.
+   ========================================================= */
+
+export const deleteAnnouncement = async (
+  announcementId
+) => {
+
+  if (!announcementId) {
+    throw new Error(
+      "Unable to delete announcement: missing document ID."
+    );
+  }
+
+
+  const announcementRef = doc(
+    db,
+    ANNOUNCEMENTS_COLLECTION,
+    announcementId
+  );
+
+
+  await deleteDoc(
+    announcementRef
+  );
 };

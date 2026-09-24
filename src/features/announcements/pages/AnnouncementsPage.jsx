@@ -5,7 +5,8 @@ import {
   getAllAnnouncements,
   addAnnouncement,
   updateAnnouncement,
-  setAnnouncementActiveStatus
+  setAnnouncementActiveStatus,
+  deleteAnnouncement
 } from "../services/announcementService";
 
 import "../components/AnnouncementsPage.css";
@@ -29,8 +30,6 @@ function AnnouncementsPage() {
   const [message, setMessage] = useState("");
   const [displayOrder, setDisplayOrder] = useState("");
 
-  // Contains the selected announcement while editing.
-  // Its Firestore document ID is used internally only.
   const [editingAnnouncement, setEditingAnnouncement] =
     useState(null);
 
@@ -136,8 +135,6 @@ function AnnouncementsPage() {
       announcement.displayOrder?.toString() || ""
     );
 
-    // The Firestore ID remains inside this object.
-    // The admin does not need to type or edit it.
     setEditingAnnouncement(announcement);
 
     setErrorMessage("");
@@ -163,8 +160,6 @@ function AnnouncementsPage() {
     setErrorMessage("");
     setSuccessMessage("");
 
-
-    /* ---------------- VALIDATION ---------------- */
 
     if (!title.trim()) {
 
@@ -204,8 +199,6 @@ function AnnouncementsPage() {
       setSaving(true);
 
 
-      /* ---------------- EDIT ---------------- */
-
       if (editingAnnouncement) {
 
         await updateAnnouncement(
@@ -219,15 +212,7 @@ function AnnouncementsPage() {
           "Announcement updated successfully."
         );
 
-      }
-
-
-      /* ---------------- ADD ---------------- */
-
-      else {
-
-        // No manual ID.
-        // Firestore generates the document ID automatically.
+      } else {
 
         await addAnnouncement(
           title,
@@ -241,7 +226,6 @@ function AnnouncementsPage() {
       }
 
 
-      // Clear and close the form.
       setTitle("");
       setMessage("");
       setDisplayOrder("");
@@ -249,7 +233,6 @@ function AnnouncementsPage() {
       setShowForm(false);
 
 
-      // Reload latest data from Firestore.
       await loadAnnouncements();
 
 
@@ -285,6 +268,8 @@ function AnnouncementsPage() {
 
     try {
 
+      setSaving(true);
+
       setErrorMessage("");
       setSuccessMessage("");
 
@@ -311,6 +296,82 @@ function AnnouncementsPage() {
       setErrorMessage(
         "Unable to update announcement status."
       );
+
+    } finally {
+
+      setSaving(false);
+    }
+  };
+
+
+  /* =========================================================
+     DELETE ANNOUNCEMENT
+     ========================================================= */
+
+  const handleDelete = async (
+    announcement
+  ) => {
+
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${announcement.title}"?\n\nThis action cannot be undone.`
+    );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+
+    try {
+
+      setSaving(true);
+
+      setErrorMessage("");
+      setSuccessMessage("");
+
+
+      await deleteAnnouncement(
+        announcement.id
+      );
+
+
+      /*
+       * If the announcement currently being edited
+       * is the same announcement being deleted,
+       * close and clear the form.
+       */
+      if (
+        editingAnnouncement?.id ===
+        announcement.id
+      ) {
+
+        resetForm();
+      }
+
+
+      setSuccessMessage(
+        "Announcement deleted successfully."
+      );
+
+
+      await loadAnnouncements();
+
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete announcement:",
+        error
+      );
+
+      setErrorMessage(
+        error.message ||
+        "Unable to delete announcement."
+      );
+
+    } finally {
+
+      setSaving(false);
     }
   };
 
@@ -551,8 +612,6 @@ function AnnouncementsPage() {
           </div>
 
 
-          {/* LOADING */}
-
           {loading ? (
 
             <div className="announcement-state-message">
@@ -655,6 +714,33 @@ function AnnouncementsPage() {
                           ? "Deactivate"
                           : "Activate"}
 
+                      </button>
+
+
+                      {/* DELETE */}
+
+                      <button
+                        type="button"
+                        className="announcement-delete-button"
+                        onClick={() =>
+                          handleDelete(
+                            announcement
+                          )
+                        }
+                        disabled={saving}
+                        style={{
+                          backgroundColor: "#dc3545",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "6px",
+                          padding: "8px 14px",
+                          cursor: saving
+                            ? "not-allowed"
+                            : "pointer",
+                          fontWeight: "600"
+                        }}
+                      >
+                        Delete
                       </button>
 
                     </div>
