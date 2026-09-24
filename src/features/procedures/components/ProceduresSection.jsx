@@ -4,13 +4,15 @@ import {
   getAllProcedureSteps,
   addProcedureStep,
   updateProcedureStep,
-  setProcedureStepActiveStatus
+  setProcedureStepActiveStatus,
 } from "../services/procedureService";
+
+import { uploadProcedureImage } from "../../../services/cloudinaryService";
 
 
 function ProceduresSection({
   transactionId,
-  transactionName
+  transactionName,
 }) {
 
   const [procedures, setProcedures] = useState([]);
@@ -26,8 +28,19 @@ function ProceduresSection({
   const [procedureId, setProcedureId] = useState("");
   const [stepNumber, setStepNumber] = useState("");
   const [instruction, setInstruction] = useState("");
+
   const [imageCaption, setImageCaption] = useState("");
   const [remoteImageUrl, setRemoteImageUrl] = useState("");
+
+  // New image selected from computer/phone
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  // Local preview of selected image
+  const [imagePreview, setImagePreview] = useState("");
+
+  // Used when editing and admin wants to remove old image
+  const [removeExistingImage, setRemoveExistingImage] =
+    useState(false);
 
   const [editingProcedure, setEditingProcedure] =
     useState(null);
@@ -45,23 +58,19 @@ function ProceduresSection({
       return;
     }
 
-
     try {
 
       setLoading(true);
       setErrorMessage("");
 
-
       const allProcedures =
         await getAllProcedureSteps();
-
 
       const filteredProcedures =
         allProcedures
           .filter(
             (procedure) =>
-              procedure.transactionId ===
-              transactionId
+              procedure.transactionId === transactionId
           )
           .sort(
             (a, b) =>
@@ -69,11 +78,7 @@ function ProceduresSection({
               (b.stepNumber || 0)
           );
 
-
-      setProcedures(
-        filteredProcedures
-      );
-
+      setProcedures(filteredProcedures);
 
     } catch (error) {
 
@@ -85,7 +90,6 @@ function ProceduresSection({
       setErrorMessage(
         "Unable to load procedure steps."
       );
-
 
     } finally {
 
@@ -104,16 +108,46 @@ function ProceduresSection({
 
 
   /* =========================================
+     CLEAN IMAGE PREVIEW
+     ========================================= */
+
+  useEffect(() => {
+
+    return () => {
+      if (
+        imagePreview &&
+        imagePreview.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+
+  }, [imagePreview]);
+
+
+  /* =========================================
      RESET FORM
      ========================================= */
 
   const resetForm = () => {
 
+    if (
+      imagePreview &&
+      imagePreview.startsWith("blob:")
+    ) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
     setProcedureId("");
     setStepNumber("");
     setInstruction("");
+
     setImageCaption("");
     setRemoteImageUrl("");
+
+    setSelectedImage(null);
+    setImagePreview("");
+    setRemoveExistingImage(false);
 
     setEditingProcedure(null);
     setShowForm(false);
@@ -134,8 +168,13 @@ function ProceduresSection({
     );
 
     setInstruction("");
+
     setImageCaption("");
     setRemoteImageUrl("");
+
+    setSelectedImage(null);
+    setImagePreview("");
+    setRemoveExistingImage(false);
 
     setEditingProcedure(null);
 
@@ -173,6 +212,14 @@ function ProceduresSection({
       procedure.remoteImageUrl || ""
     );
 
+    setSelectedImage(null);
+
+    setImagePreview(
+      procedure.remoteImageUrl || ""
+    );
+
+    setRemoveExistingImage(false);
+
     setEditingProcedure(
       procedure
     );
@@ -181,6 +228,86 @@ function ProceduresSection({
     setSuccessMessage("");
 
     setShowForm(true);
+
+  };
+
+
+  /* =========================================
+     SELECT IMAGE
+     ========================================= */
+
+  const handleImageChange = (event) => {
+
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (!file.type.startsWith("image/")) {
+
+      setErrorMessage(
+        "Please select an image file only."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    const maxFileSize =
+      5 * 1024 * 1024;
+
+    if (file.size > maxFileSize) {
+
+      setErrorMessage(
+        "Image must not exceed 5 MB."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    if (
+      imagePreview &&
+      imagePreview.startsWith("blob:")
+    ) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    const previewUrl =
+      URL.createObjectURL(file);
+
+    setSelectedImage(file);
+    setImagePreview(previewUrl);
+
+    // A newly selected image replaces the old image.
+    setRemoveExistingImage(false);
+
+  };
+
+
+  /* =========================================
+     REMOVE IMAGE
+     ========================================= */
+
+  const handleRemoveImage = () => {
+
+    if (
+      imagePreview &&
+      imagePreview.startsWith("blob:")
+    ) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    setSelectedImage(null);
+    setImagePreview("");
+
+    // Clear image URL when saved.
+    setRemoteImageUrl("");
+    setRemoveExistingImage(true);
 
   };
 
@@ -233,9 +360,48 @@ function ProceduresSection({
     }
 
 
+    if (
+      !editingProcedure &&
+      !procedureId.trim()
+    ) {
+
+      setErrorMessage(
+        "Procedure ID is required."
+      );
+
+      return;
+
+    }
+
+
     try {
 
       setSaving(true);
+
+      /*
+       * Keep the current image when editing,
+       * unless the admin removes it or uploads
+       * a replacement.
+       */
+      let finalImageUrl =
+        remoteImageUrl || "";
+
+      if (removeExistingImage) {
+        finalImageUrl = "";
+      }
+
+      /*
+       * Upload only when the admin actually
+       * selected a new image.
+       */
+      if (selectedImage) {
+
+        finalImageUrl =
+          await uploadProcedureImage(
+            selectedImage
+          );
+
+      }
 
 
       if (editingProcedure) {
@@ -246,10 +412,9 @@ function ProceduresSection({
           stepNumber,
           instruction,
           imageCaption,
-          remoteImageUrl,
+          finalImageUrl,
           editingProcedure.localImagePath || ""
         );
-
 
         setSuccessMessage(
           "Procedure step updated successfully."
@@ -258,27 +423,15 @@ function ProceduresSection({
 
       } else {
 
-        if (!procedureId.trim()) {
-
-          setErrorMessage(
-            "Procedure ID is required."
-          );
-
-          return;
-
-        }
-
-
         await addProcedureStep(
           procedureId,
           transactionId,
           stepNumber,
           instruction,
           imageCaption,
-          remoteImageUrl,
+          finalImageUrl,
           ""
         );
-
 
         setSuccessMessage(
           "Procedure step added successfully."
@@ -527,28 +680,87 @@ function ProceduresSection({
 
 
 
-            {/* IMAGE URL */}
+            {/* OPTIONAL IMAGE */}
 
             <div className="transaction-form-group full-width">
 
-              <label htmlFor="remoteImageUrl">
-                Image URL
+              <label htmlFor="procedureImage">
+                Procedure Image (Optional)
               </label>
 
               <input
-                id="remoteImageUrl"
-                type="text"
-                placeholder="Optional image URL"
-                value={remoteImageUrl}
-                onChange={(event) =>
-                  setRemoteImageUrl(
-                    event.target.value
-                  )
-                }
+                id="procedureImage"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
                 disabled={saving}
               />
 
+              <small
+                style={{
+                  display: "block",
+                  marginTop: "6px",
+                  opacity: 0.7,
+                }}
+              >
+                Optional. Images only, maximum 5 MB.
+              </small>
+
             </div>
+
+
+
+            {/* IMAGE PREVIEW */}
+
+            {imagePreview && (
+
+              <div className="transaction-form-group full-width">
+
+                <label>
+                  Image Preview
+                </label>
+
+                <div
+                  style={{
+                    marginTop: "8px",
+                    maxWidth: "500px",
+                  }}
+                >
+
+                  <img
+                    src={imagePreview}
+                    alt={
+                      imageCaption ||
+                      "Procedure preview"
+                    }
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      maxHeight: "320px",
+                      objectFit: "contain",
+                      borderRadius: "10px",
+                      border:
+                        "1px solid rgba(255,255,255,0.15)",
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    className="transaction-secondary-button"
+                    onClick={handleRemoveImage}
+                    disabled={saving}
+                    style={{
+                      marginTop: "10px",
+                    }}
+                  >
+                    Remove Image
+                  </button>
+
+                </div>
+
+              </div>
+
+            )}
 
 
 
@@ -557,13 +769,13 @@ function ProceduresSection({
             <div className="transaction-form-group full-width">
 
               <label htmlFor="imageCaption">
-                Image Caption
+                Image Caption (Optional)
               </label>
 
               <input
                 id="imageCaption"
                 type="text"
-                placeholder="Optional image caption"
+                placeholder="Example: Registrar Window 6"
                 value={imageCaption}
                 onChange={(event) =>
                   setImageCaption(
@@ -586,7 +798,9 @@ function ProceduresSection({
               disabled={saving}
             >
               {saving
-                ? "Saving..."
+                ? selectedImage
+                  ? "Uploading & Saving..."
+                  : "Saving..."
                 : editingProcedure
                   ? "Save Changes"
                   : "Add Step"}
@@ -673,21 +887,50 @@ function ProceduresSection({
                     </p>
 
 
-                    {procedure.imageCaption && (
-
-                      <p>
-                        Image Caption:{" "}
-                        {procedure.imageCaption}
-                      </p>
-
-                    )}
-
+                    {/* ACTUAL IMAGE */}
 
                     {procedure.remoteImageUrl && (
 
-                      <p>
-                        Image attached
-                      </p>
+                      <div
+                        style={{
+                          marginTop: "12px",
+                          maxWidth: "350px",
+                        }}
+                      >
+
+                        <img
+                          src={procedure.remoteImageUrl}
+                          alt={
+                            procedure.imageCaption ||
+                            `Step ${procedure.stepNumber}`
+                          }
+                          loading="lazy"
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            maxHeight: "240px",
+                            objectFit: "contain",
+                            borderRadius: "10px",
+                            border:
+                              "1px solid rgba(255,255,255,0.15)",
+                          }}
+                        />
+
+                        {procedure.imageCaption && (
+
+                          <p
+                            style={{
+                              marginTop: "6px",
+                              fontSize: "0.9rem",
+                              opacity: 0.8,
+                            }}
+                          >
+                            {procedure.imageCaption}
+                          </p>
+
+                        )}
+
+                      </div>
 
                     )}
 
