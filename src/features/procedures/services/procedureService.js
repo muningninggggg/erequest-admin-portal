@@ -14,41 +14,6 @@ const PROCEDURES_COLLECTION = "procedure_steps";
 
 
 /* =========================================
-   HELPER: CLEAN + VALIDATE OPTIONAL URL
-   ========================================= */
-
-function cleanWebsiteUrl(websiteUrl = "") {
-
-  const cleanUrl =
-    websiteUrl.trim();
-
-
-  // Optional field:
-  // blank value is allowed.
-  if (!cleanUrl) {
-    return "";
-  }
-
-
-  // Only allow normal website links.
-  if (
-    !cleanUrl.startsWith("https://") &&
-    !cleanUrl.startsWith("http://")
-  ) {
-
-    throw new Error(
-      "Website URL must start with http:// or https://"
-    );
-
-  }
-
-
-  return cleanUrl;
-
-}
-
-
-/* =========================================
    GET ALL PROCEDURE STEPS
    ========================================= */
 
@@ -110,6 +75,7 @@ export async function addProcedureStep(
   imageCaption = "",
   remoteImageUrl = "",
   localImagePath = "",
+  websiteName = "",
   websiteUrl = ""
 ) {
 
@@ -130,6 +96,9 @@ export async function addProcedureStep(
 
   const cleanLocalImagePath =
     localImagePath.trim();
+
+  const cleanWebsiteName =
+    websiteName.trim();
 
   const cleanWebsiteUrl =
     cleanWebsiteUrlValue(
@@ -174,6 +143,40 @@ export async function addProcedureStep(
 
     throw new Error(
       "Procedure instruction is required."
+    );
+
+  }
+
+
+  /*
+   * If a website URL is entered,
+   * a link name is also required.
+   */
+
+  if (
+    cleanWebsiteUrl &&
+    !cleanWebsiteName
+  ) {
+
+    throw new Error(
+      "Please enter a link name for the website."
+    );
+
+  }
+
+
+  /*
+   * If a link name is entered,
+   * a website URL is also required.
+   */
+
+  if (
+    cleanWebsiteName &&
+    !cleanWebsiteUrl
+  ) {
+
+    throw new Error(
+      "Please enter the website URL."
     );
 
   }
@@ -224,6 +227,9 @@ export async function addProcedureStep(
     imageCaption:
       cleanImageCaption,
 
+    websiteName:
+      cleanWebsiteName,
+
     websiteUrl:
       cleanWebsiteUrl,
 
@@ -249,6 +255,7 @@ export async function updateProcedureStep(
   imageCaption = "",
   remoteImageUrl = "",
   localImagePath = "",
+  websiteName = "",
   websiteUrl = ""
 ) {
 
@@ -266,6 +273,9 @@ export async function updateProcedureStep(
 
   const cleanLocalImagePath =
     localImagePath.trim();
+
+  const cleanWebsiteName =
+    websiteName.trim();
 
   const cleanWebsiteUrl =
     cleanWebsiteUrlValue(
@@ -315,6 +325,35 @@ export async function updateProcedureStep(
   }
 
 
+  /*
+   * Website name and URL must be
+   * entered together.
+   */
+
+  if (
+    cleanWebsiteUrl &&
+    !cleanWebsiteName
+  ) {
+
+    throw new Error(
+      "Please enter a link name for the website."
+    );
+
+  }
+
+
+  if (
+    cleanWebsiteName &&
+    !cleanWebsiteUrl
+  ) {
+
+    throw new Error(
+      "Please enter the website URL."
+    );
+
+  }
+
+
   const procedureRef = doc(
     db,
     PROCEDURES_COLLECTION,
@@ -341,6 +380,9 @@ export async function updateProcedureStep(
 
     imageCaption:
       cleanImageCaption,
+
+    websiteName:
+      cleanWebsiteName,
 
     websiteUrl:
       cleanWebsiteUrl,
@@ -404,7 +446,6 @@ function cleanWebsiteUrlValue(
 
   /*
    * Website URL is optional.
-   * Empty value is valid.
    */
 
   if (!cleanUrl) {
@@ -415,8 +456,8 @@ function cleanWebsiteUrlValue(
 
 
   /*
-   * Only allow normal HTTP/HTTPS
-   * website links.
+   * Only HTTP / HTTPS links
+   * are accepted.
    */
 
   if (

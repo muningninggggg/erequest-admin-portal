@@ -31,6 +31,9 @@ function ProceduresSection({
 
   const [imageCaption, setImageCaption] = useState("");
   const [remoteImageUrl, setRemoteImageUrl] = useState("");
+
+  // Optional website information
+  const [websiteName, setWebsiteName] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
 
   // New image selected from computer/phone
@@ -115,12 +118,14 @@ function ProceduresSection({
   useEffect(() => {
 
     return () => {
+
       if (
         imagePreview &&
         imagePreview.startsWith("blob:")
       ) {
         URL.revokeObjectURL(imagePreview);
       }
+
     };
 
   }, [imagePreview]);
@@ -145,6 +150,8 @@ function ProceduresSection({
 
     setImageCaption("");
     setRemoteImageUrl("");
+
+    setWebsiteName("");
     setWebsiteUrl("");
 
     setSelectedImage(null);
@@ -173,6 +180,8 @@ function ProceduresSection({
 
     setImageCaption("");
     setRemoteImageUrl("");
+
+    setWebsiteName("");
     setWebsiteUrl("");
 
     setSelectedImage(null);
@@ -213,6 +222,10 @@ function ProceduresSection({
 
     setRemoteImageUrl(
       procedure.remoteImageUrl || ""
+    );
+
+    setWebsiteName(
+      procedure.websiteName || ""
     );
 
     setWebsiteUrl(
@@ -262,6 +275,7 @@ function ProceduresSection({
 
       event.target.value = "";
       return;
+
     }
 
     const maxFileSize =
@@ -275,6 +289,7 @@ function ProceduresSection({
 
       event.target.value = "";
       return;
+
     }
 
     if (
@@ -381,20 +396,86 @@ function ProceduresSection({
     }
 
 
-    const cleanWebsiteUrl = websiteUrl.trim();
+    /* =====================================
+       CLEAN WEBSITE INFORMATION
+       ===================================== */
+
+    const cleanWebsiteName =
+      websiteName.trim();
+
+    const cleanWebsiteUrl =
+      websiteUrl.trim();
+
+
+    /*
+     * If URL exists, link name is required.
+     */
+
+    if (
+      cleanWebsiteUrl &&
+      !cleanWebsiteName
+    ) {
+
+      setErrorMessage(
+        "Please enter a link name for the website."
+      );
+
+      return;
+
+    }
+
+
+    /*
+     * If link name exists, URL is required.
+     */
+
+    if (
+      cleanWebsiteName &&
+      !cleanWebsiteUrl
+    ) {
+
+      setErrorMessage(
+        "Please enter the website URL."
+      );
+
+      return;
+
+    }
+
+
+    /*
+     * Validate optional URL.
+     */
 
     if (cleanWebsiteUrl) {
+
       try {
-        const parsedUrl = new URL(cleanWebsiteUrl);
-        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-          throw new Error("Unsupported protocol");
+
+        const parsedUrl =
+          new URL(cleanWebsiteUrl);
+
+        if (
+          !["http:", "https:"].includes(
+            parsedUrl.protocol
+          )
+        ) {
+
+          throw new Error(
+            "Unsupported protocol"
+          );
+
         }
+
       } catch {
+
         setErrorMessage(
           "Website URL must be a valid http:// or https:// address."
         );
+
         return;
+
       }
+
     }
 
 
@@ -402,22 +483,29 @@ function ProceduresSection({
 
       setSaving(true);
 
+
       /*
        * Keep the current image when editing,
        * unless the admin removes it or uploads
        * a replacement.
        */
+
       let finalImageUrl =
         remoteImageUrl || "";
 
+
       if (removeExistingImage) {
+
         finalImageUrl = "";
+
       }
+
 
       /*
        * Upload only when the admin actually
        * selected a new image.
        */
+
       if (selectedImage) {
 
         finalImageUrl =
@@ -427,6 +515,10 @@ function ProceduresSection({
 
       }
 
+
+      /* =====================================
+         UPDATE EXISTING PROCEDURE
+         ===================================== */
 
       if (editingProcedure) {
 
@@ -438,6 +530,7 @@ function ProceduresSection({
           imageCaption,
           finalImageUrl,
           editingProcedure.localImagePath || "",
+          cleanWebsiteName,
           cleanWebsiteUrl
         );
 
@@ -445,6 +538,10 @@ function ProceduresSection({
           "Procedure step updated successfully."
         );
 
+
+      /* =====================================
+         ADD NEW PROCEDURE
+         ===================================== */
 
       } else {
 
@@ -456,6 +553,7 @@ function ProceduresSection({
           imageCaption,
           finalImageUrl,
           "",
+          cleanWebsiteName,
           cleanWebsiteUrl
         );
 
@@ -504,25 +602,21 @@ function ProceduresSection({
     const newStatus =
       !procedure.isActive;
 
-
     try {
 
       setErrorMessage("");
       setSuccessMessage("");
-
 
       await setProcedureStepActiveStatus(
         procedure.id,
         newStatus
       );
 
-
       setSuccessMessage(
         newStatus
           ? "Procedure step activated successfully."
           : "Procedure step deactivated successfully."
       );
-
 
       await loadProcedures();
 
@@ -584,7 +678,6 @@ function ProceduresSection({
       </div>
 
 
-
       {/* ERROR */}
 
       {errorMessage && (
@@ -596,7 +689,6 @@ function ProceduresSection({
       )}
 
 
-
       {/* SUCCESS */}
 
       {successMessage && (
@@ -606,7 +698,6 @@ function ProceduresSection({
         </div>
 
       )}
-
 
 
       {/* ADD / EDIT FORM */}
@@ -655,7 +746,6 @@ function ProceduresSection({
             </div>
 
 
-
             {/* STEP NUMBER */}
 
             <div className="transaction-form-group">
@@ -680,7 +770,6 @@ function ProceduresSection({
             </div>
 
 
-
             {/* INSTRUCTION */}
 
             <div className="transaction-form-group full-width">
@@ -703,7 +792,6 @@ function ProceduresSection({
               />
 
             </div>
-
 
 
             {/* OPTIONAL IMAGE */}
@@ -733,7 +821,6 @@ function ProceduresSection({
               </small>
 
             </div>
-
 
 
             {/* IMAGE PREVIEW */}
@@ -789,7 +876,6 @@ function ProceduresSection({
             )}
 
 
-
             {/* IMAGE CAPTION */}
 
             <div className="transaction-form-group full-width">
@@ -814,7 +900,41 @@ function ProceduresSection({
             </div>
 
 
-            {/* OPTIONAL WEBSITE URL */}
+            {/* LINK NAME */}
+
+            <div className="transaction-form-group full-width">
+
+              <label htmlFor="websiteName">
+                Link Name (Optional)
+              </label>
+
+              <input
+                id="websiteName"
+                type="text"
+                placeholder="Example: Online Application Form"
+                value={websiteName}
+                onChange={(event) =>
+                  setWebsiteName(
+                    event.target.value
+                  )
+                }
+                disabled={saving}
+              />
+
+              <small
+                style={{
+                  display: "block",
+                  marginTop: "6px",
+                  opacity: 0.7,
+                }}
+              >
+                This is the clickable name that students will see.
+              </small>
+
+            </div>
+
+
+            {/* WEBSITE URL */}
 
             <div className="transaction-form-group full-width">
 
@@ -842,10 +962,11 @@ function ProceduresSection({
                   opacity: 0.7,
                 }}
               >
-                Optional. Add the website that students should open for this step.
+                Enter the website that will open when the student taps the link name.
               </small>
 
             </div>
+
 
           </div>
 
@@ -881,7 +1002,6 @@ function ProceduresSection({
         </form>
 
       )}
-
 
 
       {/* PROCEDURE LIST */}
@@ -927,7 +1047,6 @@ function ProceduresSection({
                   </div>
 
 
-
                   {/* INFORMATION */}
 
                   <div>
@@ -947,16 +1066,21 @@ function ProceduresSection({
                     </p>
 
 
+                    {/* WEBSITE LINK */}
+
                     {procedure.websiteUrl && (
 
                       <p style={{ marginTop: "8px" }}>
+
                         <a
                           href={procedure.websiteUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          Open Website ↗
+                          {procedure.websiteName ||
+                            "Open Website"} ↗
                         </a>
+
                       </p>
 
                     )}
@@ -1014,11 +1138,9 @@ function ProceduresSection({
                 </div>
 
 
-
                 {/* ACTIONS */}
 
                 <div className="embedded-item-actions">
-
 
                   <span
                     className={
