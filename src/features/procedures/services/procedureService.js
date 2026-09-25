@@ -14,6 +14,41 @@ const PROCEDURES_COLLECTION = "procedure_steps";
 
 
 /* =========================================
+   HELPER: CLEAN + VALIDATE OPTIONAL URL
+   ========================================= */
+
+function cleanWebsiteUrl(websiteUrl = "") {
+
+  const cleanUrl =
+    websiteUrl.trim();
+
+
+  // Optional field:
+  // blank value is allowed.
+  if (!cleanUrl) {
+    return "";
+  }
+
+
+  // Only allow normal website links.
+  if (
+    !cleanUrl.startsWith("https://") &&
+    !cleanUrl.startsWith("http://")
+  ) {
+
+    throw new Error(
+      "Website URL must start with http:// or https://"
+    );
+
+  }
+
+
+  return cleanUrl;
+
+}
+
+
+/* =========================================
    GET ALL PROCEDURE STEPS
    ========================================= */
 
@@ -74,7 +109,8 @@ export async function addProcedureStep(
   instruction,
   imageCaption = "",
   remoteImageUrl = "",
-  localImagePath = ""
+  localImagePath = "",
+  websiteUrl = ""
 ) {
 
   const cleanId =
@@ -94,6 +130,11 @@ export async function addProcedureStep(
 
   const cleanLocalImagePath =
     localImagePath.trim();
+
+  const cleanWebsiteUrl =
+    cleanWebsiteUrlValue(
+      websiteUrl
+    );
 
   const cleanStepNumber =
     Number(stepNumber);
@@ -183,6 +224,9 @@ export async function addProcedureStep(
     imageCaption:
       cleanImageCaption,
 
+    websiteUrl:
+      cleanWebsiteUrl,
+
     isActive: true,
 
     updatedAt:
@@ -204,7 +248,8 @@ export async function updateProcedureStep(
   instruction,
   imageCaption = "",
   remoteImageUrl = "",
-  localImagePath = ""
+  localImagePath = "",
+  websiteUrl = ""
 ) {
 
   const cleanTransactionId =
@@ -221,6 +266,11 @@ export async function updateProcedureStep(
 
   const cleanLocalImagePath =
     localImagePath.trim();
+
+  const cleanWebsiteUrl =
+    cleanWebsiteUrlValue(
+      websiteUrl
+    );
 
   const cleanStepNumber =
     Number(stepNumber);
@@ -292,6 +342,9 @@ export async function updateProcedureStep(
     imageCaption:
       cleanImageCaption,
 
+    websiteUrl:
+      cleanWebsiteUrl,
+
     updatedAt:
       Date.now()
 
@@ -333,5 +386,51 @@ export async function setProcedureStepActiveStatus(
       Date.now()
 
   });
+
+}
+
+
+/* =========================================
+   OPTIONAL WEBSITE URL VALIDATION
+   ========================================= */
+
+function cleanWebsiteUrlValue(
+  websiteUrl = ""
+) {
+
+  const cleanUrl =
+    websiteUrl.trim();
+
+
+  /*
+   * Website URL is optional.
+   * Empty value is valid.
+   */
+
+  if (!cleanUrl) {
+
+    return "";
+
+  }
+
+
+  /*
+   * Only allow normal HTTP/HTTPS
+   * website links.
+   */
+
+  if (
+    !cleanUrl.startsWith("https://") &&
+    !cleanUrl.startsWith("http://")
+  ) {
+
+    throw new Error(
+      "Website URL must start with http:// or https://"
+    );
+
+  }
+
+
+  return cleanUrl;
 
 }

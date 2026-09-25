@@ -31,6 +31,7 @@ function ProceduresSection({
 
   const [imageCaption, setImageCaption] = useState("");
   const [remoteImageUrl, setRemoteImageUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
 
   // New image selected from computer/phone
   const [selectedImage, setSelectedImage] = useState(null);
@@ -144,6 +145,7 @@ function ProceduresSection({
 
     setImageCaption("");
     setRemoteImageUrl("");
+    setWebsiteUrl("");
 
     setSelectedImage(null);
     setImagePreview("");
@@ -171,6 +173,7 @@ function ProceduresSection({
 
     setImageCaption("");
     setRemoteImageUrl("");
+    setWebsiteUrl("");
 
     setSelectedImage(null);
     setImagePreview("");
@@ -210,6 +213,10 @@ function ProceduresSection({
 
     setRemoteImageUrl(
       procedure.remoteImageUrl || ""
+    );
+
+    setWebsiteUrl(
+      procedure.websiteUrl || ""
     );
 
     setSelectedImage(null);
@@ -374,6 +381,23 @@ function ProceduresSection({
     }
 
 
+    const cleanWebsiteUrl = websiteUrl.trim();
+
+    if (cleanWebsiteUrl) {
+      try {
+        const parsedUrl = new URL(cleanWebsiteUrl);
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+          throw new Error("Unsupported protocol");
+        }
+      } catch {
+        setErrorMessage(
+          "Website URL must be a valid http:// or https:// address."
+        );
+        return;
+      }
+    }
+
+
     try {
 
       setSaving(true);
@@ -413,7 +437,8 @@ function ProceduresSection({
           instruction,
           imageCaption,
           finalImageUrl,
-          editingProcedure.localImagePath || ""
+          editingProcedure.localImagePath || "",
+          cleanWebsiteUrl
         );
 
         setSuccessMessage(
@@ -430,7 +455,8 @@ function ProceduresSection({
           instruction,
           imageCaption,
           finalImageUrl,
-          ""
+          "",
+          cleanWebsiteUrl
         );
 
         setSuccessMessage(
@@ -787,6 +813,40 @@ function ProceduresSection({
 
             </div>
 
+
+            {/* OPTIONAL WEBSITE URL */}
+
+            <div className="transaction-form-group full-width">
+
+              <label htmlFor="websiteUrl">
+                Website URL (Optional)
+              </label>
+
+              <input
+                id="websiteUrl"
+                type="url"
+                placeholder="https://example.com"
+                value={websiteUrl}
+                onChange={(event) =>
+                  setWebsiteUrl(
+                    event.target.value
+                  )
+                }
+                disabled={saving}
+              />
+
+              <small
+                style={{
+                  display: "block",
+                  marginTop: "6px",
+                  opacity: 0.7,
+                }}
+              >
+                Optional. Add the website that students should open for this step.
+              </small>
+
+            </div>
+
           </div>
 
 
@@ -885,6 +945,21 @@ function ProceduresSection({
                     <p>
                       ID: {procedure.id}
                     </p>
+
+
+                    {procedure.websiteUrl && (
+
+                      <p style={{ marginTop: "8px" }}>
+                        <a
+                          href={procedure.websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Open Website ↗
+                        </a>
+                      </p>
+
+                    )}
 
 
                     {/* ACTUAL IMAGE */}
