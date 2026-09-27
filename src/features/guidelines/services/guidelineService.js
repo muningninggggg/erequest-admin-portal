@@ -1,738 +1,419 @@
-import { useEffect, useState } from "react";
-
 import {
-  getAllGuidelines,
-  addGuideline,
-  updateGuideline,
-  setGuidelineActiveStatus
-} from "../services/guidelineService";
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  updateDoc
+} from "firebase/firestore";
+
+import { db } from "../../../firebase/firebaseConfig";
 
 
-function GuidelinesSection({
-  transactionId,
-  transactionName
-}) {
-
-  const [guidelines, setGuidelines] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-
-  const [showForm, setShowForm] = useState(false);
-
-  /*
-   * guidelineId state REMOVED.
-   *
-   * Guideline ID is automatically generated
-   * inside guidelineService.js.
-   */
-
-  const [guidelineText, setGuidelineText] = useState("");
-  const [displayOrder, setDisplayOrder] = useState("");
-
-  const [editingGuideline, setEditingGuideline] =
-    useState(null);
+const GUIDELINES_COLLECTION =
+  "department_guidelines";
 
 
-  /* =========================================
-     LOAD GUIDELINES
-     ========================================= */
+/* =========================================
+   GET ALL GUIDELINES
+   ========================================= */
 
-  const loadGuidelines = async () => {
+export async function getAllGuidelines() {
 
-    if (!transactionId) {
+  const guidelinesRef = collection(
+    db,
+    GUIDELINES_COLLECTION
+  );
 
-      setGuidelines([]);
-      setLoading(false);
+  const snapshot = await getDocs(
+    guidelinesRef
+  );
 
-      return;
+
+  const guidelines = snapshot.docs.map(
+    (document) => ({
+      id: document.id,
+      ...document.data()
+    })
+  );
+
+
+  guidelines.sort((a, b) => {
+
+    const transactionCompare =
+      (a.transactionId || "").localeCompare(
+        b.transactionId || ""
+      );
+
+
+    if (transactionCompare !== 0) {
+      return transactionCompare;
     }
 
 
-    try {
-
-      setLoading(true);
-      setErrorMessage("");
-
-
-      const allGuidelines =
-        await getAllGuidelines();
-
-
-      const filteredGuidelines =
-        allGuidelines
-          .filter(
-            (guideline) =>
-              guideline.transactionId ===
-              transactionId
-          )
-          .sort(
-            (a, b) =>
-              (a.displayOrder || 0) -
-              (b.displayOrder || 0)
-          );
-
-
-      setGuidelines(
-        filteredGuidelines
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        "Failed to load guidelines:",
-        error
-      );
-
-
-      setErrorMessage(
-        "Unable to load guidelines."
-      );
-
-
-    } finally {
-
-      setLoading(false);
-
-    }
-  };
-
-
-  useEffect(() => {
-
-    loadGuidelines();
-
-  }, [transactionId]);
-
-
-  /* =========================================
-     RESET FORM
-     ========================================= */
-
-  const resetForm = () => {
-
-    setGuidelineText("");
-    setDisplayOrder("");
-
-    setEditingGuideline(null);
-    setShowForm(false);
-
-  };
-
-
-  /* =========================================
-     ADD GUIDELINE
-     ========================================= */
-
-  const handleAddGuideline = () => {
-
-    setGuidelineText("");
-
-    /*
-     * Automatically suggest the next
-     * display order for this transaction.
-     */
-
-    setDisplayOrder(
-      String(guidelines.length + 1)
+    return (
+      (a.displayOrder || 0) -
+      (b.displayOrder || 0)
     );
 
-    setEditingGuideline(null);
-
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    setShowForm(true);
-
-  };
+  });
 
 
-  /* =========================================
-     EDIT GUIDELINE
-     ========================================= */
-
-  const handleEdit = (guideline) => {
-
-    /*
-     * We do NOT change the guideline ID.
-     *
-     * The existing guideline.id is kept
-     * internally inside editingGuideline.
-     */
-
-    setGuidelineText(
-      guideline.guidelineText || ""
-    );
+  return guidelines;
+}
 
 
-    setDisplayOrder(
-      guideline.displayOrder?.toString() || ""
-    );
+/* =========================================
+   CREATE ID-FRIENDLY NAME
+
+   Example:
+   "Bring Original Documents"
+   ->
+   "bring_original_documents"
+   ========================================= */
+
+function createIdName(name) {
+
+  return name
+    .trim()
+    .toLowerCase()
+
+    // Remove special characters
+    .replace(/[^a-z0-9\s_-]/g, "")
+
+    // Spaces become underscores
+    .replace(/\s+/g, "_")
+
+    // Multiple underscores become one
+    .replace(/_+/g, "_")
+
+    // Remove underscores at beginning/end
+    .replace(/^_+|_+$/g, "");
+}
 
 
-    setEditingGuideline(
-      guideline
-    );
+/* =========================================
+   GET NEXT GUIDELINE NUMBER
+
+   Example existing:
+   bring_original_documents_001
+   observe_office_hours_002
+
+   Next:
+   3
+   ========================================= */
+
+async function getNextGuidelineNumber() {
+
+  const guidelinesRef = collection(
+    db,
+    GUIDELINES_COLLECTION
+  );
 
 
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    setShowForm(true);
-
-  };
+  const snapshot = await getDocs(
+    guidelinesRef
+  );
 
 
-  /* =========================================
-     SAVE GUIDELINE
-     ========================================= */
-
-  const handleSubmit = async (event) => {
-
-    event.preventDefault();
-
-    setErrorMessage("");
-    setSuccessMessage("");
+  let highestNumber = 0;
 
 
-    /* =====================================
-       TRANSACTION VALIDATION
-       ===================================== */
+  snapshot.docs.forEach((document) => {
 
-    if (!transactionId) {
-
-      setErrorMessage(
-        "No transaction selected."
-      );
-
-      return;
-    }
+    const guidelineId =
+      document.id;
 
 
-    /* =====================================
-       GUIDELINE VALIDATION
-       ===================================== */
-
-    if (!guidelineText.trim()) {
-
-      setErrorMessage(
-        "Guideline is required."
-      );
-
-      return;
-    }
+    const match =
+      guidelineId.match(/_(\d+)$/);
 
 
-    /* =====================================
-       DISPLAY ORDER VALIDATION
-       ===================================== */
+    if (match) {
 
-    if (
-      !displayOrder ||
-      Number(displayOrder) < 1
-    ) {
-
-      setErrorMessage(
-        "Display order must be greater than 0."
-      );
-
-      return;
-    }
+      const number =
+        parseInt(match[1], 10);
 
 
-    try {
-
-      setSaving(true);
-
-
-      /* =====================================
-         UPDATE EXISTING GUIDELINE
-         ===================================== */
-
-      if (editingGuideline) {
-
-        await updateGuideline(
-          editingGuideline.id,
-          transactionId,
-          guidelineText,
-          displayOrder
-        );
-
-
-        setSuccessMessage(
-          "Guideline updated successfully."
-        );
-
-
-      /* =====================================
-         ADD NEW GUIDELINE
-         ===================================== */
-
-      } else {
-
-        /*
-         * No guidelineId is passed here.
-         *
-         * guidelineService.js automatically
-         * generates the ID.
-         *
-         * Example:
-         *
-         * Bring Original Documents
-         *
-         * becomes:
-         *
-         * bring_original_documents_001
-         */
-
-        const generatedGuidelineId =
-          await addGuideline(
-            transactionId,
-            guidelineText,
-            displayOrder
-          );
-
-
-        console.log(
-          "Generated Guideline ID:",
-          generatedGuidelineId
-        );
-
-
-        setSuccessMessage(
-          `Guideline added successfully. ID: ${generatedGuidelineId}`
-        );
-
+      if (number > highestNumber) {
+        highestNumber = number;
       }
 
-
-      resetForm();
-
-      await loadGuidelines();
-
-
-    } catch (error) {
-
-      console.error(
-        "Failed to save guideline:",
-        error
-      );
-
-
-      setErrorMessage(
-        error.message ||
-        "Unable to save guideline."
-      );
-
-
-    } finally {
-
-      setSaving(false);
-
     }
-  };
+
+  });
 
 
-  /* =========================================
-     ACTIVATE / DEACTIVATE
-     ========================================= */
-
-  const handleStatusChange = async (
-    guideline
-  ) => {
-
-    const newStatus =
-      !guideline.isActive;
+  return highestNumber + 1;
+}
 
 
-    try {
+/* =========================================
+   GENERATE GUIDELINE ID
+   ========================================= */
 
-      setErrorMessage("");
-      setSuccessMessage("");
+async function generateGuidelineId(
+  guidelineText
+) {
 
-
-      await setGuidelineActiveStatus(
-        guideline.id,
-        newStatus
-      );
-
-
-      setSuccessMessage(
-        newStatus
-          ? "Guideline activated successfully."
-          : "Guideline deactivated successfully."
-      );
+  const idName =
+    createIdName(guidelineText);
 
 
-      await loadGuidelines();
+  if (!idName) {
 
-
-    } catch (error) {
-
-      console.error(
-        "Failed to update guideline status:",
-        error
-      );
-
-
-      setErrorMessage(
-        "Unable to update guideline status."
-      );
-
-    }
-  };
-
-
-  /* =========================================
-     NO TRANSACTION
-     ========================================= */
-
-  if (!transactionId) {
-
-    return null;
+    throw new Error(
+      "Unable to generate Guideline ID."
+    );
 
   }
 
 
-  /* =========================================
-     UI
-     ========================================= */
+  const nextNumber =
+    await getNextGuidelineNumber();
 
-  return (
 
-    <section className="transaction-detail-section">
+  const formattedNumber =
+    String(nextNumber).padStart(
+      3,
+      "0"
+    );
 
 
-      {/* =====================================
-          HEADER
-          ===================================== */}
-
-      <div className="transaction-detail-section-header">
-
-        <div>
-
-          <h2>
-            Guidelines
-          </h2>
-
-
-          <p>
-
-            Manage the guidelines for{" "}
-
-            <strong>
-              {transactionName}
-            </strong>.
-
-          </p>
-
-        </div>
-
-
-        <button
-          type="button"
-          className="transaction-primary-button"
-          onClick={handleAddGuideline}
-        >
-          + Add Guideline
-        </button>
-
-      </div>
-
-
-      {/* =====================================
-          ERROR
-          ===================================== */}
-
-      {errorMessage && (
-
-        <div className="transaction-error">
-          {errorMessage}
-        </div>
-
-      )}
-
-
-      {/* =====================================
-          SUCCESS
-          ===================================== */}
-
-      {successMessage && (
-
-        <div className="transaction-success">
-          {successMessage}
-        </div>
-
-      )}
-
-
-      {/* =====================================
-          ADD / EDIT FORM
-          ===================================== */}
-
-      {showForm && (
-
-        <form
-          className="embedded-management-form"
-          onSubmit={handleSubmit}
-        >
-
-          <h3>
-
-            {editingGuideline
-              ? "Edit Guideline"
-              : "Add Guideline"}
-
-          </h3>
-
-
-          <div className="transaction-form-grid">
-
-
-            {/* =================================
-                DISPLAY ORDER
-                ================================= */}
-
-            <div className="transaction-form-group">
-
-              <label htmlFor="guidelineDisplayOrder">
-                Display Order
-              </label>
-
-
-              <input
-                id="guidelineDisplayOrder"
-                type="number"
-                min="1"
-                value={displayOrder}
-                onChange={(event) =>
-                  setDisplayOrder(
-                    event.target.value
-                  )
-                }
-                disabled={saving}
-              />
-
-            </div>
-
-
-            {/* =================================
-                GUIDELINE
-                ================================= */}
-
-            <div className="transaction-form-group full-width">
-
-              <label htmlFor="guidelineText">
-                Guideline
-              </label>
-
-
-              <textarea
-                id="guidelineText"
-                placeholder="Enter guideline"
-                value={guidelineText}
-                onChange={(event) =>
-                  setGuidelineText(
-                    event.target.value
-                  )
-                }
-                disabled={saving}
-                rows="4"
-              />
-
-
-              {!editingGuideline && (
-
-                <small
-                  style={{
-                    display: "block",
-                    marginTop: "6px",
-                    opacity: 0.7
-                  }}
-                >
-                  Guideline ID will be generated automatically.
-                </small>
-
-              )}
-
-            </div>
-
-          </div>
-
-
-          {/* ===================================
-              FORM ACTIONS
-              =================================== */}
-
-          <div className="transaction-form-actions">
-
-            <button
-              type="submit"
-              className="transaction-primary-button"
-              disabled={saving}
-            >
-
-              {saving
-                ? "Saving..."
-                : editingGuideline
-                  ? "Save Changes"
-                  : "Add Guideline"}
-
-            </button>
-
-
-            <button
-              type="button"
-              className="transaction-secondary-button"
-              onClick={resetForm}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-
-          </div>
-
-        </form>
-
-      )}
-
-
-      {/* =====================================
-          GUIDELINES LIST
-          ===================================== */}
-
-      {loading ? (
-
-        <p className="transactions-state-message">
-          Loading guidelines...
-        </p>
-
-      ) : guidelines.length === 0 ? (
-
-        <div className="embedded-empty-state">
-
-          <p>
-            No guidelines have been added
-            to this transaction yet.
-          </p>
-
-        </div>
-
-      ) : (
-
-        <div className="embedded-item-list">
-
-
-          {guidelines.map(
-            (guideline) => (
-
-              <div
-                key={guideline.id}
-                className="embedded-item"
-              >
-
-
-                {/* =================================
-                    CONTENT
-                    ================================= */}
-
-                <div className="embedded-item-content">
-
-
-                  <div className="embedded-item-order">
-
-                    {guideline.displayOrder}
-
-                  </div>
-
-
-                  <div>
-
-                    <h4>
-                      {guideline.guidelineText}
-                    </h4>
-
-
-                    <p>
-                      ID: {guideline.id}
-                    </p>
-
-                  </div>
-
-                </div>
-
-
-                {/* =================================
-                    ACTIONS
-                    ================================= */}
-
-                <div className="embedded-item-actions">
-
-
-                  <span
-                    className={
-                      guideline.isActive
-                        ? "transaction-status active"
-                        : "transaction-status inactive"
-                    }
-                  >
-
-                    {guideline.isActive
-                      ? "Active"
-                      : "Inactive"}
-
-                  </span>
-
-
-                  <button
-                    type="button"
-                    className="transaction-edit-button"
-                    onClick={() =>
-                      handleEdit(
-                        guideline
-                      )
-                    }
-                  >
-                    Edit
-                  </button>
-
-
-                  <button
-                    type="button"
-                    className="transaction-status-button"
-                    onClick={() =>
-                      handleStatusChange(
-                        guideline
-                      )
-                    }
-                  >
-
-                    {guideline.isActive
-                      ? "Deactivate"
-                      : "Activate"}
-
-                  </button>
-
-                </div>
-
-              </div>
-
-            )
-          )}
-
-        </div>
-
-      )}
-
-    </section>
-
-  );
-
+  return `${idName}_${formattedNumber}`;
 }
 
 
-export default GuidelinesSection;
+/* =========================================
+   ADD GUIDELINE
+
+   ID IS GENERATED AUTOMATICALLY
+   ========================================= */
+
+export async function addGuideline(
+  transactionId,
+  guidelineText,
+  displayOrder
+) {
+
+  const cleanTransactionId =
+    transactionId.trim();
+
+  const cleanGuidelineText =
+    guidelineText.trim();
+
+  const cleanDisplayOrder =
+    Number(displayOrder);
+
+
+  /* VALIDATION */
+
+  if (!cleanTransactionId) {
+
+    throw new Error(
+      "Transaction ID is required."
+    );
+
+  }
+
+
+  if (!cleanGuidelineText) {
+
+    throw new Error(
+      "Guideline is required."
+    );
+
+  }
+
+
+  if (
+    !Number.isInteger(cleanDisplayOrder) ||
+    cleanDisplayOrder < 1
+  ) {
+
+    throw new Error(
+      "Display order must be greater than 0."
+    );
+
+  }
+
+
+  /* GENERATE ID */
+
+  const guidelineId =
+    await generateGuidelineId(
+      cleanGuidelineText
+    );
+
+
+  const guidelineRef = doc(
+    db,
+    GUIDELINES_COLLECTION,
+    guidelineId
+  );
+
+
+  /* SAVE */
+
+  const currentTime =
+    Date.now();
+
+
+  await setDoc(
+    guidelineRef,
+    {
+
+      transactionId:
+        cleanTransactionId,
+
+      guidelineText:
+        cleanGuidelineText,
+
+      displayOrder:
+        cleanDisplayOrder,
+
+      isActive:
+        true,
+
+      createdAt:
+        currentTime,
+
+      updatedAt:
+        currentTime
+
+    }
+  );
+
+
+  return guidelineId;
+}
+
+
+/* =========================================
+   UPDATE GUIDELINE
+
+   IMPORTANT:
+   EXISTING ID DOES NOT CHANGE
+   ========================================= */
+
+export async function updateGuideline(
+  guidelineId,
+  transactionId,
+  guidelineText,
+  displayOrder
+) {
+
+  const cleanTransactionId =
+    transactionId.trim();
+
+  const cleanGuidelineText =
+    guidelineText.trim();
+
+  const cleanDisplayOrder =
+    Number(displayOrder);
+
+
+  if (!guidelineId) {
+
+    throw new Error(
+      "Guideline ID is required."
+    );
+
+  }
+
+
+  if (!cleanTransactionId) {
+
+    throw new Error(
+      "Transaction ID is required."
+    );
+
+  }
+
+
+  if (!cleanGuidelineText) {
+
+    throw new Error(
+      "Guideline is required."
+    );
+
+  }
+
+
+  if (
+    !Number.isInteger(cleanDisplayOrder) ||
+    cleanDisplayOrder < 1
+  ) {
+
+    throw new Error(
+      "Display order must be greater than 0."
+    );
+
+  }
+
+
+  const guidelineRef = doc(
+    db,
+    GUIDELINES_COLLECTION,
+    guidelineId
+  );
+
+
+  await updateDoc(
+    guidelineRef,
+    {
+
+      transactionId:
+        cleanTransactionId,
+
+      guidelineText:
+        cleanGuidelineText,
+
+      displayOrder:
+        cleanDisplayOrder,
+
+      updatedAt:
+        Date.now()
+
+    }
+  );
+}
+
+
+/* =========================================
+   ACTIVATE / DEACTIVATE GUIDELINE
+   ========================================= */
+
+export async function setGuidelineActiveStatus(
+  guidelineId,
+  isActive
+) {
+
+  if (!guidelineId) {
+
+    throw new Error(
+      "Guideline ID is required."
+    );
+
+  }
+
+
+  const guidelineRef = doc(
+    db,
+    GUIDELINES_COLLECTION,
+    guidelineId
+  );
+
+
+  await updateDoc(
+    guidelineRef,
+    {
+
+      isActive:
+        isActive,
+
+      updatedAt:
+        Date.now()
+
+    }
+  );
+}

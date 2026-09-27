@@ -13,19 +13,29 @@ function GuidelinesSection({
   transactionName
 }) {
 
-  const [guidelines, setGuidelines] = useState([]);
+  const [guidelines, setGuidelines] =
+    useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [saving, setSaving] =
+    useState(false);
 
-  const [showForm, setShowForm] = useState(false);
+  const [errorMessage, setErrorMessage] =
+    useState("");
 
-  const [guidelineId, setGuidelineId] = useState("");
-  const [guidelineText, setGuidelineText] = useState("");
-  const [displayOrder, setDisplayOrder] = useState("");
+  const [successMessage, setSuccessMessage] =
+    useState("");
+
+  const [showForm, setShowForm] =
+    useState(false);
+
+  const [guidelineText, setGuidelineText] =
+    useState("");
+
+  const [displayOrder, setDisplayOrder] =
+    useState("");
 
   const [editingGuideline, setEditingGuideline] =
     useState(null);
@@ -43,7 +53,6 @@ function GuidelinesSection({
       setLoading(false);
 
       return;
-
     }
 
 
@@ -94,7 +103,6 @@ function GuidelinesSection({
       setLoading(false);
 
     }
-
   };
 
 
@@ -111,13 +119,11 @@ function GuidelinesSection({
 
   const resetForm = () => {
 
-    setGuidelineId("");
     setGuidelineText("");
     setDisplayOrder("");
 
     setEditingGuideline(null);
     setShowForm(false);
-
   };
 
 
@@ -127,7 +133,6 @@ function GuidelinesSection({
 
   const handleAddGuideline = () => {
 
-    setGuidelineId("");
     setGuidelineText("");
 
     setDisplayOrder(
@@ -140,7 +145,6 @@ function GuidelinesSection({
     setSuccessMessage("");
 
     setShowForm(true);
-
   };
 
 
@@ -150,27 +154,25 @@ function GuidelinesSection({
 
   const handleEdit = (guideline) => {
 
-    setGuidelineId(
-      guideline.id
-    );
-
     setGuidelineText(
       guideline.guidelineText || ""
     );
+
 
     setDisplayOrder(
       guideline.displayOrder?.toString() || ""
     );
 
+
     setEditingGuideline(
       guideline
     );
+
 
     setErrorMessage("");
     setSuccessMessage("");
 
     setShowForm(true);
-
   };
 
 
@@ -186,6 +188,8 @@ function GuidelinesSection({
     setSuccessMessage("");
 
 
+    /* TRANSACTION */
+
     if (!transactionId) {
 
       setErrorMessage(
@@ -193,9 +197,10 @@ function GuidelinesSection({
       );
 
       return;
-
     }
 
+
+    /* GUIDELINE */
 
     if (!guidelineText.trim()) {
 
@@ -204,9 +209,10 @@ function GuidelinesSection({
       );
 
       return;
-
     }
 
+
+    /* DISPLAY ORDER */
 
     if (
       !displayOrder ||
@@ -218,7 +224,6 @@ function GuidelinesSection({
       );
 
       return;
-
     }
 
 
@@ -226,6 +231,10 @@ function GuidelinesSection({
 
       setSaving(true);
 
+
+      /* =====================================
+         UPDATE
+         ===================================== */
 
       if (editingGuideline) {
 
@@ -242,29 +251,28 @@ function GuidelinesSection({
         );
 
 
+      /* =====================================
+         ADD
+         ===================================== */
+
       } else {
 
-        if (!guidelineId.trim()) {
-
-          setErrorMessage(
-            "Guideline ID is required."
+        const generatedGuidelineId =
+          await addGuideline(
+            transactionId,
+            guidelineText,
+            displayOrder
           );
 
-          return;
 
-        }
-
-
-        await addGuideline(
-          guidelineId,
-          transactionId,
-          guidelineText,
-          displayOrder
+        console.log(
+          "Generated Guideline ID:",
+          generatedGuidelineId
         );
 
 
         setSuccessMessage(
-          "Guideline added successfully."
+          `Guideline added successfully. ID: ${generatedGuidelineId}`
         );
 
       }
@@ -294,7 +302,6 @@ function GuidelinesSection({
       setSaving(false);
 
     }
-
   };
 
 
@@ -345,7 +352,6 @@ function GuidelinesSection({
       );
 
     }
-
   };
 
 
@@ -354,9 +360,7 @@ function GuidelinesSection({
      ========================================= */
 
   if (!transactionId) {
-
     return null;
-
   }
 
 
@@ -379,8 +383,10 @@ function GuidelinesSection({
             Guidelines
           </h2>
 
+
           <p>
             Manage the guidelines for{" "}
+
             <strong>
               {transactionName}
             </strong>.
@@ -400,7 +406,6 @@ function GuidelinesSection({
       </div>
 
 
-
       {/* ERROR */}
 
       {errorMessage && (
@@ -410,7 +415,6 @@ function GuidelinesSection({
         </div>
 
       )}
-
 
 
       {/* SUCCESS */}
@@ -424,8 +428,9 @@ function GuidelinesSection({
       )}
 
 
-
-      {/* ADD / EDIT FORM */}
+      {/* =====================================
+          ADD / EDIT FORM
+          ===================================== */}
 
       {showForm && (
 
@@ -435,41 +440,15 @@ function GuidelinesSection({
         >
 
           <h3>
+
             {editingGuideline
               ? "Edit Guideline"
               : "Add Guideline"}
+
           </h3>
 
 
           <div className="transaction-form-grid">
-
-
-            {/* GUIDELINE ID */}
-
-            <div className="transaction-form-group">
-
-              <label htmlFor="guidelineId">
-                Guideline ID
-              </label>
-
-              <input
-                id="guidelineId"
-                type="text"
-                placeholder="Example: prospectus_guide_3"
-                value={guidelineId}
-                onChange={(event) =>
-                  setGuidelineId(
-                    event.target.value
-                  )
-                }
-                disabled={
-                  saving ||
-                  editingGuideline !== null
-                }
-              />
-
-            </div>
-
 
 
             {/* DISPLAY ORDER */}
@@ -479,6 +458,7 @@ function GuidelinesSection({
               <label htmlFor="guidelineDisplayOrder">
                 Display Order
               </label>
+
 
               <input
                 id="guidelineDisplayOrder"
@@ -496,7 +476,6 @@ function GuidelinesSection({
             </div>
 
 
-
             {/* GUIDELINE */}
 
             <div className="transaction-form-group full-width">
@@ -504,6 +483,7 @@ function GuidelinesSection({
               <label htmlFor="guidelineText">
                 Guideline
               </label>
+
 
               <textarea
                 id="guidelineText"
@@ -518,10 +498,24 @@ function GuidelinesSection({
                 rows="4"
               />
 
+
+              {!editingGuideline && (
+
+                <small
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    opacity: 0.7
+                  }}
+                >
+                  Guideline ID will be generated automatically.
+                </small>
+
+              )}
+
             </div>
 
           </div>
-
 
 
           {/* FORM ACTIONS */}
@@ -559,8 +553,9 @@ function GuidelinesSection({
       )}
 
 
-
-      {/* GUIDELINES LIST */}
+      {/* =====================================
+          GUIDELINES LIST
+          ===================================== */}
 
       {loading ? (
 
@@ -609,6 +604,7 @@ function GuidelinesSection({
                       {guideline.guidelineText}
                     </h4>
 
+
                     <p>
                       ID: {guideline.id}
                     </p>
@@ -616,7 +612,6 @@ function GuidelinesSection({
                   </div>
 
                 </div>
-
 
 
                 {/* ACTIONS */}
@@ -680,9 +675,7 @@ function GuidelinesSection({
       )}
 
     </section>
-
   );
-
 }
 
 
