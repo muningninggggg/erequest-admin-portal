@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   setDoc,
   updateDoc
@@ -64,11 +63,161 @@ export async function getAllProcedureSteps() {
 
 
 /* =========================================
+   CREATE ID-FRIENDLY NAME
+
+   Example:
+
+   "Submit Requirements"
+   ->
+   "submit_requirements"
+
+   "Proceed to Registrar Office"
+   ->
+   "proceed_to_registrar_office"
+   ========================================= */
+
+function createIdName(name) {
+
+  return name
+    .trim()
+    .toLowerCase()
+
+    // Remove special characters
+    .replace(/[^a-z0-9\s_-]/g, "")
+
+    // Spaces become underscores
+    .replace(/\s+/g, "_")
+
+    // Multiple underscores become one
+    .replace(/_+/g, "_")
+
+    // Remove underscores at beginning/end
+    .replace(/^_+|_+$/g, "");
+
+}
+
+
+/* =========================================
+   GET NEXT PROCEDURE NUMBER
+
+   Example existing IDs:
+
+   submit_requirements_001
+   wait_for_verification_002
+   claim_document_003
+
+   Next:
+   4
+   ========================================= */
+
+async function getNextProcedureNumber() {
+
+  const proceduresRef = collection(
+    db,
+    PROCEDURES_COLLECTION
+  );
+
+
+  const snapshot = await getDocs(
+    proceduresRef
+  );
+
+
+  let highestNumber = 0;
+
+
+  snapshot.docs.forEach((document) => {
+
+    const procedureId =
+      document.id;
+
+
+    /*
+     * Find number at the end
+     *
+     * Example:
+     *
+     * submit_requirements_001
+     *                     ↓
+     *                    001
+     */
+
+    const match =
+      procedureId.match(/_(\d+)$/);
+
+
+    if (match) {
+
+      const number =
+        parseInt(match[1], 10);
+
+
+      if (number > highestNumber) {
+
+        highestNumber = number;
+
+      }
+
+    }
+
+  });
+
+
+  return highestNumber + 1;
+
+}
+
+
+/* =========================================
+   GENERATE PROCEDURE ID
+   ========================================= */
+
+async function generateProcedureId(
+  instruction
+) {
+
+  const idName =
+    createIdName(instruction);
+
+
+  if (!idName) {
+
+    throw new Error(
+      "Unable to generate Procedure ID."
+    );
+
+  }
+
+
+  const nextNumber =
+    await getNextProcedureNumber();
+
+
+  const formattedNumber =
+    String(nextNumber).padStart(
+      3,
+      "0"
+    );
+
+
+  return `${idName}_${formattedNumber}`;
+
+}
+
+
+/* =========================================
    ADD PROCEDURE STEP
+
+   PROCEDURE ID IS AUTOMATIC
+
+   Example:
+
+   Submit Requirements
+   ->
+   submit_requirements_001
    ========================================= */
 
 export async function addProcedureStep(
-  procedureId,
   transactionId,
   stepNumber,
   instruction,
@@ -78,9 +227,6 @@ export async function addProcedureStep(
   websiteName = "",
   websiteUrl = ""
 ) {
-
-  const cleanId =
-    procedureId.trim();
 
   const cleanTransactionId =
     transactionId.trim();
@@ -109,14 +255,9 @@ export async function addProcedureStep(
     Number(stepNumber);
 
 
-  if (!cleanId) {
-
-    throw new Error(
-      "Procedure ID is required."
-    );
-
-  }
-
+  /* =========================================
+     VALIDATION
+     ========================================= */
 
   if (!cleanTransactionId) {
 
@@ -182,69 +323,95 @@ export async function addProcedureStep(
   }
 
 
+  /* =========================================
+     GENERATE PROCEDURE ID
+     ========================================= */
+
+  const procedureId =
+    await generateProcedureId(
+      cleanInstruction
+    );
+
+
   const procedureRef = doc(
     db,
     PROCEDURES_COLLECTION,
-    cleanId
+    procedureId
   );
 
 
-  /*
-   * Prevent an existing Procedure ID
-   * from being overwritten.
-   */
+  /* =========================================
+     SAVE TO FIRESTORE
+     ========================================= */
 
-  const existingProcedure =
-    await getDoc(procedureRef);
+  await setDoc(
+    procedureRef,
+    {
+
+      transactionId:
+        cleanTransactionId,
+
+      stepNumber:
+        cleanStepNumber,
+
+      instruction:
+        cleanInstruction,
+
+      remoteImageUrl:
+        cleanRemoteImageUrl,
+
+      localImagePath:
+        cleanLocalImagePath,
+
+      imageCaption:
+        cleanImageCaption,
+
+      websiteName:
+        cleanWebsiteName,
+
+      websiteUrl:
+        cleanWebsiteUrl,
+
+      isActive:
+        true,
+
+      createdAt:
+        Date.now(),
+
+      updatedAt:
+        Date.now()
+
+    }
+  );
 
 
-  if (existingProcedure.exists()) {
+  /* =========================================
+     RETURN GENERATED ID
+     ========================================= */
 
-    throw new Error(
-      "A procedure step with this ID already exists."
-    );
-
-  }
-
-
-  await setDoc(procedureRef, {
-
-    transactionId:
-      cleanTransactionId,
-
-    stepNumber:
-      cleanStepNumber,
-
-    instruction:
-      cleanInstruction,
-
-    remoteImageUrl:
-      cleanRemoteImageUrl,
-
-    localImagePath:
-      cleanLocalImagePath,
-
-    imageCaption:
-      cleanImageCaption,
-
-    websiteName:
-      cleanWebsiteName,
-
-    websiteUrl:
-      cleanWebsiteUrl,
-
-    isActive: true,
-
-    updatedAt:
-      Date.now()
-
-  });
+  return procedureId;
 
 }
 
 
 /* =========================================
    UPDATE PROCEDURE STEP
+
+   IMPORTANT:
+
+   Procedure ID DOES NOT CHANGE
+   when instruction is edited.
+
+   Example:
+
+   Original ID:
+   submit_requirements_001
+
+   New instruction:
+   Submit Complete Requirements
+
+   ID remains:
+   submit_requirements_001
    ========================================= */
 
 export async function updateProcedureStep(
@@ -286,6 +453,10 @@ export async function updateProcedureStep(
     Number(stepNumber);
 
 
+  /* =========================================
+     VALIDATION
+     ========================================= */
+
   if (!procedureId) {
 
     throw new Error(
@@ -326,8 +497,8 @@ export async function updateProcedureStep(
 
 
   /*
-   * Website name and URL must be
-   * entered together.
+   * Website name and URL
+   * must be entered together.
    */
 
   if (
@@ -354,6 +525,10 @@ export async function updateProcedureStep(
   }
 
 
+  /* =========================================
+     UPDATE FIRESTORE
+     ========================================= */
+
   const procedureRef = doc(
     db,
     PROCEDURES_COLLECTION,
@@ -361,36 +536,39 @@ export async function updateProcedureStep(
   );
 
 
-  await updateDoc(procedureRef, {
+  await updateDoc(
+    procedureRef,
+    {
 
-    transactionId:
-      cleanTransactionId,
+      transactionId:
+        cleanTransactionId,
 
-    stepNumber:
-      cleanStepNumber,
+      stepNumber:
+        cleanStepNumber,
 
-    instruction:
-      cleanInstruction,
+      instruction:
+        cleanInstruction,
 
-    remoteImageUrl:
-      cleanRemoteImageUrl,
+      remoteImageUrl:
+        cleanRemoteImageUrl,
 
-    localImagePath:
-      cleanLocalImagePath,
+      localImagePath:
+        cleanLocalImagePath,
 
-    imageCaption:
-      cleanImageCaption,
+      imageCaption:
+        cleanImageCaption,
 
-    websiteName:
-      cleanWebsiteName,
+      websiteName:
+        cleanWebsiteName,
 
-    websiteUrl:
-      cleanWebsiteUrl,
+      websiteUrl:
+        cleanWebsiteUrl,
 
-    updatedAt:
-      Date.now()
+      updatedAt:
+        Date.now()
 
-  });
+    }
+  );
 
 }
 
@@ -420,14 +598,18 @@ export async function setProcedureStepActiveStatus(
   );
 
 
-  await updateDoc(procedureRef, {
+  await updateDoc(
+    procedureRef,
+    {
 
-    isActive: isActive,
+      isActive:
+        isActive,
 
-    updatedAt:
-      Date.now()
+      updatedAt:
+        Date.now()
 
-  });
+    }
+  );
 
 }
 

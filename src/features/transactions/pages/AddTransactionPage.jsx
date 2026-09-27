@@ -20,7 +20,6 @@ function AddTransactionPage() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [transactionId, setTransactionId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -84,16 +83,7 @@ function AddTransactionPage() {
     setErrorMessage("");
 
 
-    if (!transactionId.trim()) {
-
-      setErrorMessage(
-        "Transaction ID is required."
-      );
-
-      return;
-
-    }
-
+    /* SERVICE VALIDATION */
 
     if (!serviceId) {
 
@@ -105,6 +95,8 @@ function AddTransactionPage() {
 
     }
 
+
+    /* TRANSACTION NAME VALIDATION */
 
     if (!name.trim()) {
 
@@ -122,13 +114,34 @@ function AddTransactionPage() {
       setSaving(true);
 
 
-      await addTransaction(
-        transactionId,
-        serviceId,
-        name,
-        description,
-        officeName,
-        officeSchedule
+      /*
+       * Transaction ID is now generated automatically
+       * inside transactionService.js.
+       *
+       * Example:
+       *
+       * Getting Prospectus
+       * ->
+       * getting_prospectus_001
+       *
+       * Updating Prospectus
+       * ->
+       * updating_prospectus_002
+       */
+
+      const generatedTransactionId =
+        await addTransaction(
+          serviceId,
+          name,
+          description,
+          officeName,
+          officeSchedule
+        );
+
+
+      console.log(
+        "Transaction created successfully:",
+        generatedTransactionId
       );
 
 
@@ -253,38 +266,9 @@ function AddTransactionPage() {
               <div className="add-transaction-form-grid">
 
 
-                {/* TRANSACTION ID */}
-
-                <div className="add-transaction-form-group">
-
-                  <label htmlFor="transactionId">
-                    Transaction ID
-                  </label>
-
-                  <input
-                    id="transactionId"
-                    type="text"
-                    placeholder="Example: prospectus_request"
-                    value={transactionId}
-                    onChange={(event) =>
-                      setTransactionId(
-                        event.target.value
-                      )
-                    }
-                    disabled={saving}
-                  />
-
-                  <small>
-                    Use a unique ID without spaces.
-                  </small>
-
-                </div>
-
-
-
                 {/* SERVICE */}
 
-                <div className="add-transaction-form-group">
+                <div className="add-transaction-form-group full-width">
 
                   <label htmlFor="serviceId">
                     Service
@@ -345,6 +329,10 @@ function AddTransactionPage() {
                     }
                     disabled={saving}
                   />
+
+                  <small>
+                    Transaction ID will be generated automatically.
+                  </small>
 
                 </div>
 

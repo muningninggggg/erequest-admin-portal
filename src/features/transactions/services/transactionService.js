@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   setDoc,
   updateDoc
@@ -67,66 +66,202 @@ export async function getActiveServices() {
 
 
 /* =========================================
+   CREATE ID-FRIENDLY NAME
+
+   Example:
+   "Getting Prospectus"
+   becomes:
+   "getting_prospectus"
+   ========================================= */
+
+function createIdName(name) {
+  return name
+    .trim()
+    .toLowerCase()
+
+    // Remove special characters
+    .replace(/[^a-z0-9\s_-]/g, "")
+
+    // Spaces become underscore
+    .replace(/\s+/g, "_")
+
+    // Multiple underscores become one
+    .replace(/_+/g, "_")
+
+    // Remove underscore at beginning/end
+    .replace(/^_+|_+$/g, "");
+}
+
+
+/* =========================================
+   GET NEXT TRANSACTION NUMBER
+
+   Example:
+   Existing:
+   getting_prospectus_001
+   updating_prospectus_002
+
+   Next transaction:
+   request_tor_003
+   ========================================= */
+
+async function getNextTransactionNumber() {
+  const transactionsRef = collection(
+    db,
+    TRANSACTIONS_COLLECTION
+  );
+
+  const snapshot = await getDocs(transactionsRef);
+
+  let highestNumber = 0;
+
+  snapshot.docs.forEach((document) => {
+    const transactionId = document.id;
+
+    // Get last 3+ digit number from ID
+    const match = transactionId.match(/_(\d+)$/);
+
+    if (match) {
+      const number = parseInt(match[1], 10);
+
+      if (number > highestNumber) {
+        highestNumber = number;
+      }
+    }
+  });
+
+  return highestNumber + 1;
+}
+
+
+/* =========================================
+   GENERATE TRANSACTION ID
+
+   Example:
+   Name: Getting Prospectus
+   Number: 1
+
+   Result:
+   getting_prospectus_001
+   ========================================= */
+
+async function generateTransactionId(name) {
+  const idName = createIdName(name);
+
+  if (!idName) {
+    throw new Error(
+      "Unable to generate Transaction ID from the transaction name."
+    );
+  }
+
+  const nextNumber =
+    await getNextTransactionNumber();
+
+  const formattedNumber = String(
+    nextNumber
+  ).padStart(3, "0");
+
+  return `${idName}_${formattedNumber}`;
+}
+
+
+/* =========================================
    ADD TRANSACTION
+   AUTO-GENERATED TRANSACTION ID
    ========================================= */
 
 export async function addTransaction(
-  transactionId,
   serviceId,
   name,
   description,
   officeName,
   officeSchedule
 ) {
-  const cleanId = transactionId.trim();
   const cleanServiceId = serviceId.trim();
   const cleanName = name.trim();
   const cleanDescription = description.trim();
   const cleanOfficeName = officeName.trim();
   const cleanOfficeSchedule = officeSchedule.trim();
 
-  if (!cleanId) {
-    throw new Error("Transaction ID is required.");
-  }
-
   if (!cleanServiceId) {
-    throw new Error("Please select a service.");
+    throw new Error(
+      "Please select a service."
+    );
   }
 
   if (!cleanName) {
-    throw new Error("Transaction name is required.");
+    throw new Error(
+      "Transaction name is required."
+    );
   }
+
+
+  /* =========================================
+     AUTO GENERATE TRANSACTION ID
+     ========================================= */
+
+  const transactionId =
+    await generateTransactionId(cleanName);
+
 
   const transactionRef = doc(
     db,
     TRANSACTIONS_COLLECTION,
-    cleanId
+    transactionId
   );
 
-  // Prevent duplicate Transaction ID
-  const existingTransaction =
-    await getDoc(transactionRef);
 
-  if (existingTransaction.exists()) {
-    throw new Error(
-      "A transaction with this ID already exists."
-    );
-  }
+  /* =========================================
+     SAVE TO FIRESTORE
+     ========================================= */
 
   await setDoc(transactionRef, {
     serviceId: cleanServiceId,
+
     name: cleanName,
+
     description: cleanDescription,
+
     officeName: cleanOfficeName,
+
     officeSchedule: cleanOfficeSchedule,
+
     isActive: true,
+
+    createdAt: Date.now(),
+
     updatedAt: Date.now()
   });
+
+
+  /* =========================================
+     RETURN GENERATED ID
+     ========================================= */
+
+  return transactionId;
 }
 
 
 /* =========================================
    UPDATE TRANSACTION
+
+   IMPORTANT:
+   The Transaction ID does NOT change
+   when the transaction name is edited.
+
+   Example:
+
+   Original:
+   getting_prospectus_001
+
+   Name changed to:
+   Request Prospectus
+
+   ID remains:
+   getting_prospectus_001
+
+   This protects Requirements,
+   Procedures, Notifications, etc.
    ========================================= */
 
 export async function updateTransaction(
@@ -138,15 +273,21 @@ export async function updateTransaction(
   officeSchedule
 ) {
   if (!transactionId) {
-    throw new Error("Transaction ID is required.");
+    throw new Error(
+      "Transaction ID is required."
+    );
   }
 
   if (!serviceId.trim()) {
-    throw new Error("Please select a service.");
+    throw new Error(
+      "Please select a service."
+    );
   }
 
   if (!name.trim()) {
-    throw new Error("Transaction name is required.");
+    throw new Error(
+      "Transaction name is required."
+    );
   }
 
   const transactionRef = doc(
@@ -157,10 +298,15 @@ export async function updateTransaction(
 
   await updateDoc(transactionRef, {
     serviceId: serviceId.trim(),
+
     name: name.trim(),
+
     description: description.trim(),
+
     officeName: officeName.trim(),
+
     officeSchedule: officeSchedule.trim(),
+
     updatedAt: Date.now()
   });
 }
@@ -175,7 +321,9 @@ export async function setTransactionActiveStatus(
   isActive
 ) {
   if (!transactionId) {
-    throw new Error("Transaction ID is required.");
+    throw new Error(
+      "Transaction ID is required."
+    );
   }
 
   const transactionRef = doc(

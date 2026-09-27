@@ -25,7 +25,13 @@ function ProceduresSection({
 
   const [showForm, setShowForm] = useState(false);
 
-  const [procedureId, setProcedureId] = useState("");
+  /*
+   * procedureId state REMOVED.
+   *
+   * Procedure ID is now automatically generated
+   * inside procedureService.js.
+   */
+
   const [stepNumber, setStepNumber] = useState("");
   const [instruction, setInstruction] = useState("");
 
@@ -57,18 +63,23 @@ function ProceduresSection({
   const loadProcedures = async () => {
 
     if (!transactionId) {
+
       setProcedures([]);
       setLoading(false);
+
       return;
     }
+
 
     try {
 
       setLoading(true);
       setErrorMessage("");
 
+
       const allProcedures =
         await getAllProcedureSteps();
+
 
       const filteredProcedures =
         allProcedures
@@ -82,7 +93,9 @@ function ProceduresSection({
               (b.stepNumber || 0)
           );
 
+
       setProcedures(filteredProcedures);
+
 
     } catch (error) {
 
@@ -91,16 +104,17 @@ function ProceduresSection({
         error
       );
 
+
       setErrorMessage(
         "Unable to load procedure steps."
       );
+
 
     } finally {
 
       setLoading(false);
 
     }
-
   };
 
 
@@ -123,7 +137,9 @@ function ProceduresSection({
         imagePreview &&
         imagePreview.startsWith("blob:")
       ) {
+
         URL.revokeObjectURL(imagePreview);
+
       }
 
     };
@@ -141,10 +157,12 @@ function ProceduresSection({
       imagePreview &&
       imagePreview.startsWith("blob:")
     ) {
+
       URL.revokeObjectURL(imagePreview);
+
     }
 
-    setProcedureId("");
+
     setStepNumber("");
     setInstruction("");
 
@@ -160,7 +178,6 @@ function ProceduresSection({
 
     setEditingProcedure(null);
     setShowForm(false);
-
   };
 
 
@@ -170,7 +187,11 @@ function ProceduresSection({
 
   const handleAddProcedure = () => {
 
-    setProcedureId("");
+    /*
+     * Step number remains automatic
+     * based on the number of procedures
+     * currently shown.
+     */
 
     setStepNumber(
       String(procedures.length + 1)
@@ -194,7 +215,6 @@ function ProceduresSection({
     setSuccessMessage("");
 
     setShowForm(true);
-
   };
 
 
@@ -204,9 +224,13 @@ function ProceduresSection({
 
   const handleEdit = (procedure) => {
 
-    setProcedureId(
-      procedure.id
-    );
+    /*
+     * We no longer place procedure.id
+     * inside an editable form field.
+     *
+     * editingProcedure.id is used internally
+     * when updating.
+     */
 
     setStepNumber(
       procedure.stepNumber?.toString() || ""
@@ -248,7 +272,6 @@ function ProceduresSection({
     setSuccessMessage("");
 
     setShowForm(true);
-
   };
 
 
@@ -258,14 +281,18 @@ function ProceduresSection({
 
   const handleImageChange = (event) => {
 
-    const file = event.target.files?.[0];
+    const file =
+      event.target.files?.[0];
+
 
     if (!file) {
       return;
     }
 
+
     setErrorMessage("");
     setSuccessMessage("");
+
 
     if (!file.type.startsWith("image/")) {
 
@@ -274,12 +301,14 @@ function ProceduresSection({
       );
 
       event.target.value = "";
-      return;
 
+      return;
     }
+
 
     const maxFileSize =
       5 * 1024 * 1024;
+
 
     if (file.size > maxFileSize) {
 
@@ -288,26 +317,30 @@ function ProceduresSection({
       );
 
       event.target.value = "";
-      return;
 
+      return;
     }
+
 
     if (
       imagePreview &&
       imagePreview.startsWith("blob:")
     ) {
+
       URL.revokeObjectURL(imagePreview);
+
     }
+
 
     const previewUrl =
       URL.createObjectURL(file);
+
 
     setSelectedImage(file);
     setImagePreview(previewUrl);
 
     // A newly selected image replaces the old image.
     setRemoveExistingImage(false);
-
   };
 
 
@@ -321,16 +354,19 @@ function ProceduresSection({
       imagePreview &&
       imagePreview.startsWith("blob:")
     ) {
+
       URL.revokeObjectURL(imagePreview);
+
     }
+
 
     setSelectedImage(null);
     setImagePreview("");
 
     // Clear image URL when saved.
     setRemoteImageUrl("");
-    setRemoveExistingImage(true);
 
+    setRemoveExistingImage(true);
   };
 
 
@@ -346,6 +382,8 @@ function ProceduresSection({
     setSuccessMessage("");
 
 
+    /* TRANSACTION */
+
     if (!transactionId) {
 
       setErrorMessage(
@@ -353,9 +391,10 @@ function ProceduresSection({
       );
 
       return;
-
     }
 
+
+    /* STEP NUMBER */
 
     if (
       !stepNumber ||
@@ -367,9 +406,10 @@ function ProceduresSection({
       );
 
       return;
-
     }
 
+
+    /* INSTRUCTION */
 
     if (!instruction.trim()) {
 
@@ -378,22 +418,15 @@ function ProceduresSection({
       );
 
       return;
-
     }
 
 
-    if (
-      !editingProcedure &&
-      !procedureId.trim()
-    ) {
-
-      setErrorMessage(
-        "Procedure ID is required."
-      );
-
-      return;
-
-    }
+    /*
+     * NO PROCEDURE ID VALIDATION HERE.
+     *
+     * The ID is generated automatically
+     * by procedureService.js.
+     */
 
 
     /* =====================================
@@ -408,7 +441,8 @@ function ProceduresSection({
 
 
     /*
-     * If URL exists, link name is required.
+     * If URL exists,
+     * link name is required.
      */
 
     if (
@@ -421,12 +455,12 @@ function ProceduresSection({
       );
 
       return;
-
     }
 
 
     /*
-     * If link name exists, URL is required.
+     * If link name exists,
+     * URL is required.
      */
 
     if (
@@ -439,7 +473,6 @@ function ProceduresSection({
       );
 
       return;
-
     }
 
 
@@ -453,6 +486,7 @@ function ProceduresSection({
 
         const parsedUrl =
           new URL(cleanWebsiteUrl);
+
 
         if (
           !["http:", "https:"].includes(
@@ -473,9 +507,7 @@ function ProceduresSection({
         );
 
         return;
-
       }
-
     }
 
 
@@ -485,8 +517,8 @@ function ProceduresSection({
 
 
       /*
-       * Keep the current image when editing,
-       * unless the admin removes it or uploads
+       * Keep current image when editing,
+       * unless admin removes it or uploads
        * a replacement.
        */
 
@@ -502,8 +534,8 @@ function ProceduresSection({
 
 
       /*
-       * Upload only when the admin actually
-       * selected a new image.
+       * Upload only when admin selected
+       * a new image.
        */
 
       if (selectedImage) {
@@ -512,7 +544,6 @@ function ProceduresSection({
           await uploadProcedureImage(
             selectedImage
           );
-
       }
 
 
@@ -534,6 +565,7 @@ function ProceduresSection({
           cleanWebsiteUrl
         );
 
+
         setSuccessMessage(
           "Procedure step updated successfully."
         );
@@ -545,20 +577,37 @@ function ProceduresSection({
 
       } else {
 
-        await addProcedureStep(
-          procedureId,
-          transactionId,
-          stepNumber,
-          instruction,
-          imageCaption,
-          finalImageUrl,
-          "",
-          cleanWebsiteName,
-          cleanWebsiteUrl
+        /*
+         * No procedureId is passed anymore.
+         *
+         * procedureService.js generates:
+         *
+         * submit_requirements_001
+         * wait_for_verification_002
+         * claim_document_003
+         */
+
+        const generatedProcedureId =
+          await addProcedureStep(
+            transactionId,
+            stepNumber,
+            instruction,
+            imageCaption,
+            finalImageUrl,
+            "",
+            cleanWebsiteName,
+            cleanWebsiteUrl
+          );
+
+
+        console.log(
+          "Generated Procedure ID:",
+          generatedProcedureId
         );
 
+
         setSuccessMessage(
-          "Procedure step added successfully."
+          `Procedure step added successfully. ID: ${generatedProcedureId}`
         );
 
       }
@@ -576,6 +625,7 @@ function ProceduresSection({
         error
       );
 
+
       setErrorMessage(
         error.message ||
         "Unable to save procedure step."
@@ -587,7 +637,6 @@ function ProceduresSection({
       setSaving(false);
 
     }
-
   };
 
 
@@ -602,21 +651,25 @@ function ProceduresSection({
     const newStatus =
       !procedure.isActive;
 
+
     try {
 
       setErrorMessage("");
       setSuccessMessage("");
+
 
       await setProcedureStepActiveStatus(
         procedure.id,
         newStatus
       );
 
+
       setSuccessMessage(
         newStatus
           ? "Procedure step activated successfully."
           : "Procedure step deactivated successfully."
       );
+
 
       await loadProcedures();
 
@@ -628,12 +681,11 @@ function ProceduresSection({
         error
       );
 
+
       setErrorMessage(
         "Unable to update procedure status."
       );
-
     }
-
   };
 
 
@@ -659,6 +711,7 @@ function ProceduresSection({
 
           <p>
             Manage the procedure for{" "}
+
             <strong>
               {transactionName}
             </strong>.
@@ -700,7 +753,9 @@ function ProceduresSection({
       )}
 
 
-      {/* ADD / EDIT FORM */}
+      {/* =====================================
+          ADD / EDIT FORM
+          ===================================== */}
 
       {showForm && (
 
@@ -710,43 +765,20 @@ function ProceduresSection({
         >
 
           <h3>
+
             {editingProcedure
               ? "Edit Procedure Step"
               : "Add Procedure Step"}
+
           </h3>
 
 
           <div className="transaction-form-grid">
 
 
-            {/* PROCEDURE ID */}
-
-            <div className="transaction-form-group">
-
-              <label htmlFor="procedureId">
-                Procedure ID
-              </label>
-
-              <input
-                id="procedureId"
-                type="text"
-                placeholder="Example: prospectus_step_5"
-                value={procedureId}
-                onChange={(event) =>
-                  setProcedureId(
-                    event.target.value
-                  )
-                }
-                disabled={
-                  saving ||
-                  editingProcedure !== null
-                }
-              />
-
-            </div>
-
-
-            {/* STEP NUMBER */}
+            {/* =================================
+                STEP NUMBER
+                ================================= */}
 
             <div className="transaction-form-group">
 
@@ -770,7 +802,9 @@ function ProceduresSection({
             </div>
 
 
-            {/* INSTRUCTION */}
+            {/* =================================
+                INSTRUCTION
+                ================================= */}
 
             <div className="transaction-form-group full-width">
 
@@ -791,10 +825,27 @@ function ProceduresSection({
                 rows="4"
               />
 
+
+              {!editingProcedure && (
+
+                <small
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    opacity: 0.7,
+                  }}
+                >
+                  Procedure ID will be generated automatically.
+                </small>
+
+              )}
+
             </div>
 
 
-            {/* OPTIONAL IMAGE */}
+            {/* =================================
+                OPTIONAL IMAGE
+                ================================= */}
 
             <div className="transaction-form-group full-width">
 
@@ -823,7 +874,9 @@ function ProceduresSection({
             </div>
 
 
-            {/* IMAGE PREVIEW */}
+            {/* =================================
+                IMAGE PREVIEW
+                ================================= */}
 
             {imagePreview && (
 
@@ -832,6 +885,7 @@ function ProceduresSection({
                 <label>
                   Image Preview
                 </label>
+
 
                 <div
                   style={{
@@ -857,6 +911,7 @@ function ProceduresSection({
                     }}
                   />
 
+
                   <button
                     type="button"
                     className="transaction-secondary-button"
@@ -876,7 +931,9 @@ function ProceduresSection({
             )}
 
 
-            {/* IMAGE CAPTION */}
+            {/* =================================
+                IMAGE CAPTION
+                ================================= */}
 
             <div className="transaction-form-group full-width">
 
@@ -900,7 +957,9 @@ function ProceduresSection({
             </div>
 
 
-            {/* LINK NAME */}
+            {/* =================================
+                LINK NAME
+                ================================= */}
 
             <div className="transaction-form-group full-width">
 
@@ -934,7 +993,9 @@ function ProceduresSection({
             </div>
 
 
-            {/* WEBSITE URL */}
+            {/* =================================
+                WEBSITE URL
+                ================================= */}
 
             <div className="transaction-form-group full-width">
 
@@ -967,9 +1028,12 @@ function ProceduresSection({
 
             </div>
 
-
           </div>
 
+
+          {/* ===================================
+              FORM ACTIONS
+              =================================== */}
 
           <div className="transaction-form-actions">
 
@@ -978,6 +1042,7 @@ function ProceduresSection({
               className="transaction-primary-button"
               disabled={saving}
             >
+
               {saving
                 ? selectedImage
                   ? "Uploading & Saving..."
@@ -985,6 +1050,7 @@ function ProceduresSection({
                 : editingProcedure
                   ? "Save Changes"
                   : "Add Step"}
+
             </button>
 
 
@@ -1004,7 +1070,9 @@ function ProceduresSection({
       )}
 
 
-      {/* PROCEDURE LIST */}
+      {/* =====================================
+          PROCEDURE LIST
+          ===================================== */}
 
       {loading ? (
 
@@ -1115,6 +1183,7 @@ function ProceduresSection({
                           }}
                         />
 
+
                         {procedure.imageCaption && (
 
                           <p
@@ -1149,9 +1218,11 @@ function ProceduresSection({
                         : "transaction-status inactive"
                     }
                   >
+
                     {procedure.isActive
                       ? "Active"
                       : "Inactive"}
+
                   </span>
 
 
@@ -1175,9 +1246,11 @@ function ProceduresSection({
                       )
                     }
                   >
+
                     {procedure.isActive
                       ? "Deactivate"
                       : "Activate"}
+
                   </button>
 
                 </div>
@@ -1192,9 +1265,7 @@ function ProceduresSection({
       )}
 
     </section>
-
   );
-
 }
 
 
