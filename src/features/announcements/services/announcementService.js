@@ -1,372 +1,207 @@
 import {
-  useEffect,
-  useState
-} from "react";
+  collection,
+  doc,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp
+} from "firebase/firestore";
 
-import { useNavigate } from "react-router-dom";
-
-import {
-  getAllServices
-} from "../../services/services/serviceService";
-
-import {
-  getAllTransactions
-} from "../../transactions/services/transactionService";
-
-import {
-  getAllAnnouncements
-} from "../../announcements/services/announcementService";
-
-import "../components/DashboardPage.css";
+import { db } from "../../../firebase/firebaseConfig";
 
 
-function DashboardPage() {
-
-  const navigate = useNavigate();
+const ANNOUNCEMENTS_COLLECTION = "announcements";
 
 
-  /* =========================================================
-     DASHBOARD COUNTS
-     ========================================================= */
+/* =========================================================
+   GET ALL ANNOUNCEMENTS
+   ========================================================= */
 
-  const [serviceCount, setServiceCount] =
-    useState(0);
+export const getAllAnnouncements = async () => {
 
-  const [transactionCount, setTransactionCount] =
-    useState(0);
+  const snapshot = await getDocs(
+    collection(db, ANNOUNCEMENTS_COLLECTION)
+  );
 
-  const [announcementCount, setAnnouncementCount] =
-    useState(0);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  return snapshot.docs.map((document) => ({
+    id: document.id,
+    ...document.data()
+  }));
+};
 
 
-  /* =========================================================
-     LOAD DASHBOARD DATA
-     ========================================================= */
+/* =========================================================
+   ADD ANNOUNCEMENT
+   Firestore automatically creates the document ID.
+   ========================================================= */
 
-  const loadDashboardData = async () => {
+export const addAnnouncement = async (
+  title,
+  message,
+  displayOrder
+) => {
 
-    try {
+  const cleanTitle = title.trim();
+  const cleanMessage = message.trim();
 
-      setLoading(true);
-      setErrorMessage("");
+  if (!cleanTitle) {
+    throw new Error("Announcement title is required.");
+  }
 
+  if (!cleanMessage) {
+    throw new Error("Announcement message is required.");
+  }
 
-      /*
-       * Get the actual records from Firestore.
-       */
+  const order = Number(displayOrder);
 
-      const [
-        services,
-        transactions,
-        announcements
-      ] = await Promise.all([
-
-        getAllServices(),
-
-        getAllTransactions(),
-
-        getAllAnnouncements()
-
-      ]);
+  if (Number.isNaN(order)) {
+    throw new Error("Display order must be a number.");
+  }
 
 
-      /* =====================================================
-         ACTIVE SERVICES
-         ===================================================== */
+  const announcementData = {
 
-      const activeServices =
-        services.filter(
-          (service) =>
-            service.isActive === true
-        );
+    title: cleanTitle,
 
+    message: cleanMessage,
 
-      /* =====================================================
-         ACTIVE TRANSACTIONS
-         ===================================================== */
+    displayOrder: order,
 
-      const activeTransactions =
-        transactions.filter(
-          (transaction) =>
-            transaction.isActive === true
-        );
+    isActive: true,
 
+    datePosted: serverTimestamp(),
 
-      /* =====================================================
-         ACTIVE ANNOUNCEMENTS
-         ===================================================== */
-
-      const activeAnnouncements =
-        announcements.filter(
-          (announcement) =>
-            announcement.isActive === true
-        );
-
-
-      /* =====================================================
-         UPDATE COUNTS
-         ===================================================== */
-
-      setServiceCount(
-        activeServices.length
-      );
-
-
-      setTransactionCount(
-        activeTransactions.length
-      );
-
-
-      setAnnouncementCount(
-        activeAnnouncements.length
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        "Failed to load dashboard data:",
-        error
-      );
-
-
-      setErrorMessage(
-        "Unable to load dashboard summary."
-      );
-
-
-    } finally {
-
-      setLoading(false);
-
-    }
-
+    updatedAt: serverTimestamp()
   };
 
 
-  /* =========================================================
-     LOAD WHEN DASHBOARD OPENS
-     ========================================================= */
-
-  useEffect(() => {
-
-    loadDashboardData();
-
-  }, []);
-
-
-  /* =========================================================
-     UI
-     ========================================================= */
-
-  return (
-
-    <div className="dashboard-page">
-
-
-      {/* ================================
-          HEADER
-         ================================ */}
-
-      <header className="dashboard-header">
-
-        <div>
-
-          <h1>
-            Dashboard
-          </h1>
-
-          <p>
-            Welcome to the E-ReQuest Administrator Portal.
-          </p>
-
-        </div>
-
-      </header>
-
-
-
-      {/* ================================
-          SUMMARY
-         ================================ */}
-
-      <section className="dashboard-summary">
-
-
-        {/* SERVICES */}
-
-        <div className="summary-card">
-
-          <h3>
-            Services
-          </h3>
-
-          <p className="summary-number">
-
-            {loading
-              ? "..."
-              : serviceCount}
-
-          </p>
-
-          <span>
-            Active services
-          </span>
-
-        </div>
-
-
-
-        {/* TRANSACTIONS */}
-
-        <div className="summary-card">
-
-          <h3>
-            Transactions / Documents
-          </h3>
-
-          <p className="summary-number">
-
-            {loading
-              ? "..."
-              : transactionCount}
-
-          </p>
-
-          <span>
-            Active transactions
-          </span>
-
-        </div>
-
-
-
-        {/* ANNOUNCEMENTS */}
-
-        <div className="summary-card">
-
-          <h3>
-            Announcements
-          </h3>
-
-          <p className="summary-number">
-
-            {loading
-              ? "..."
-              : announcementCount}
-
-          </p>
-
-          <span>
-            Active announcements
-          </span>
-
-        </div>
-
-
-      </section>
-
-
-
-      {/* ================================
-          ERROR MESSAGE
-         ================================ */}
-
-      {errorMessage && (
-
-        <p
-          style={{
-            textAlign: "center",
-            marginTop: "12px"
-          }}
-        >
-          {errorMessage}
-        </p>
-
-      )}
-
-
-
-      {/* ================================
-          CONTENT MANAGEMENT
-         ================================ */}
-
-      <section className="dashboard-content">
-
-        <div className="dashboard-panel">
-
-
-          <h2>
-            Content Management
-          </h2>
-
-
-          <p>
-            Manage the information displayed in the
-            E-ReQuest student application.
-          </p>
-
-
-
-          <div className="management-grid">
-
-
-            {/* SERVICES */}
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/services")
-              }
-            >
-              Services
-            </button>
-
-
-
-            {/* TRANSACTIONS */}
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/transactions")
-              }
-            >
-              Transactions / Documents
-            </button>
-
-
-
-            {/* ANNOUNCEMENTS */}
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/announcements")
-              }
-            >
-              Announcements
-            </button>
-
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-    </div>
-
+  const documentReference = await addDoc(
+    collection(db, ANNOUNCEMENTS_COLLECTION),
+    announcementData
   );
 
-}
+
+  return documentReference.id;
+};
 
 
-export default DashboardPage;
+/* =========================================================
+   UPDATE ANNOUNCEMENT
+   ========================================================= */
+
+export const updateAnnouncement = async (
+  announcementId,
+  title,
+  message,
+  displayOrder
+) => {
+
+  if (!announcementId) {
+    throw new Error(
+      "Unable to update announcement: missing document ID."
+    );
+  }
+
+
+  const cleanTitle = title.trim();
+  const cleanMessage = message.trim();
+
+
+  if (!cleanTitle) {
+    throw new Error("Announcement title is required.");
+  }
+
+
+  if (!cleanMessage) {
+    throw new Error("Announcement message is required.");
+  }
+
+
+  const order = Number(displayOrder);
+
+
+  if (Number.isNaN(order)) {
+    throw new Error("Display order must be a number.");
+  }
+
+
+  const announcementRef = doc(
+    db,
+    ANNOUNCEMENTS_COLLECTION,
+    announcementId
+  );
+
+
+  await updateDoc(announcementRef, {
+
+    title: cleanTitle,
+
+    message: cleanMessage,
+
+    displayOrder: order,
+
+    updatedAt: serverTimestamp()
+  });
+};
+
+
+/* =========================================================
+   ACTIVATE / DEACTIVATE ANNOUNCEMENT
+   ========================================================= */
+
+export const setAnnouncementActiveStatus = async (
+  announcementId,
+  isActive
+) => {
+
+  if (!announcementId) {
+    throw new Error(
+      "Unable to change announcement status: missing document ID."
+    );
+  }
+
+
+  const announcementRef = doc(
+    db,
+    ANNOUNCEMENTS_COLLECTION,
+    announcementId
+  );
+
+
+  await updateDoc(announcementRef, {
+
+    isActive: Boolean(isActive),
+
+    updatedAt: serverTimestamp()
+  });
+};
+
+
+/* =========================================================
+   DELETE ANNOUNCEMENT
+   Permanently removes the announcement from Firestore.
+   ========================================================= */
+
+export const deleteAnnouncement = async (
+  announcementId
+) => {
+
+  if (!announcementId) {
+    throw new Error(
+      "Unable to delete announcement: missing document ID."
+    );
+  }
+
+
+  const announcementRef = doc(
+    db,
+    ANNOUNCEMENTS_COLLECTION,
+    announcementId
+  );
+
+
+  await deleteDoc(
+    announcementRef
+  );
+};
