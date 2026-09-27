@@ -25,9 +25,9 @@ function DashboardPage() {
   const navigate = useNavigate();
 
 
-  /* =========================================
-     SUMMARY COUNTS
-     ========================================= */
+  /* =========================================================
+     DASHBOARD COUNTS
+     ========================================================= */
 
   const [serviceCount, setServiceCount] =
     useState(0);
@@ -38,28 +38,27 @@ function DashboardPage() {
   const [announcementCount, setAnnouncementCount] =
     useState(0);
 
-  const [loadingSummary, setLoadingSummary] =
+  const [loading, setLoading] =
     useState(true);
 
-  const [summaryError, setSummaryError] =
+  const [errorMessage, setErrorMessage] =
     useState("");
 
 
-  /* =========================================
-     LOAD DASHBOARD SUMMARY
-     ========================================= */
+  /* =========================================================
+     LOAD DASHBOARD DATA
+     ========================================================= */
 
-  const loadDashboardSummary = async () => {
+  const loadDashboardData = async () => {
 
     try {
 
-      setLoadingSummary(true);
-      setSummaryError("");
+      setLoading(true);
+      setErrorMessage("");
 
 
       /*
-       * Load the same Firestore data used
-       * by Content Management.
+       * Get the actual records from Firestore.
        */
 
       const [
@@ -77,11 +76,9 @@ function DashboardPage() {
       ]);
 
 
-      /* =====================================
-         SERVICES
-
-         Count active services only.
-         ===================================== */
+      /* =====================================================
+         ACTIVE SERVICES
+         ===================================================== */
 
       const activeServices =
         services.filter(
@@ -90,16 +87,9 @@ function DashboardPage() {
         );
 
 
-      setServiceCount(
-        activeServices.length
-      );
-
-
-      /* =====================================
-         TRANSACTIONS
-
-         Count active transactions only.
-         ===================================== */
+      /* =====================================================
+         ACTIVE TRANSACTIONS
+         ===================================================== */
 
       const activeTransactions =
         transactions.filter(
@@ -108,23 +98,29 @@ function DashboardPage() {
         );
 
 
-      setTransactionCount(
-        activeTransactions.length
-      );
-
-
-      /* =====================================
-         ANNOUNCEMENTS
-
-         Dashboard specifically says:
-         "Active announcements"
-         ===================================== */
+      /* =====================================================
+         ACTIVE ANNOUNCEMENTS
+         ===================================================== */
 
       const activeAnnouncements =
         announcements.filter(
           (announcement) =>
             announcement.isActive === true
         );
+
+
+      /* =====================================================
+         UPDATE COUNTS
+         ===================================================== */
+
+      setServiceCount(
+        activeServices.length
+      );
+
+
+      setTransactionCount(
+        activeTransactions.length
+      );
 
 
       setAnnouncementCount(
@@ -135,39 +131,39 @@ function DashboardPage() {
     } catch (error) {
 
       console.error(
-        "Failed to load dashboard summary:",
+        "Failed to load dashboard data:",
         error
       );
 
 
-      setSummaryError(
+      setErrorMessage(
         "Unable to load dashboard summary."
       );
 
 
     } finally {
 
-      setLoadingSummary(false);
+      setLoading(false);
 
     }
 
   };
 
 
-  /* =========================================
+  /* =========================================================
      LOAD WHEN DASHBOARD OPENS
-     ========================================= */
+     ========================================================= */
 
   useEffect(() => {
 
-    loadDashboardSummary();
+    loadDashboardData();
 
   }, []);
 
 
-  /* =========================================
+  /* =========================================================
      UI
-     ========================================= */
+     ========================================================= */
 
   return (
 
@@ -213,7 +209,7 @@ function DashboardPage() {
 
           <p className="summary-number">
 
-            {loadingSummary
+            {loading
               ? "..."
               : serviceCount}
 
@@ -237,7 +233,7 @@ function DashboardPage() {
 
           <p className="summary-number">
 
-            {loadingSummary
+            {loading
               ? "..."
               : transactionCount}
 
@@ -261,7 +257,7 @@ function DashboardPage() {
 
           <p className="summary-number">
 
-            {loadingSummary
+            {loading
               ? "..."
               : announcementCount}
 
@@ -277,9 +273,12 @@ function DashboardPage() {
       </section>
 
 
-      {/* ERROR MESSAGE */}
 
-      {summaryError && (
+      {/* ================================
+          ERROR MESSAGE
+         ================================ */}
+
+      {errorMessage && (
 
         <p
           style={{
@@ -287,7 +286,7 @@ function DashboardPage() {
             marginTop: "12px"
           }}
         >
-          {summaryError}
+          {errorMessage}
         </p>
 
       )}
