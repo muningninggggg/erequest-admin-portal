@@ -10,23 +10,34 @@ import {
 
 import "../components/ServicesPage.css";
 
+
 function ServicesPage() {
 
   const navigate = useNavigate();
 
-  const [services, setServices] = useState([]);
+  const [services, setServices] =
+    useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [saving, setSaving] =
+    useState(false);
 
-  const [serviceId, setServiceId] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [errorMessage, setErrorMessage] =
+    useState("");
 
-  const [editingService, setEditingService] = useState(null);
+  const [successMessage, setSuccessMessage] =
+    useState("");
+
+  const [name, setName] =
+    useState("");
+
+  const [description, setDescription] =
+    useState("");
+
+  const [editingService, setEditingService] =
+    useState(null);
 
 
   /* =========================================================
@@ -40,13 +51,17 @@ function ServicesPage() {
       setLoading(true);
       setErrorMessage("");
 
-      const data = await getAllServices();
+      const data =
+        await getAllServices();
 
       setServices(data);
 
     } catch (error) {
 
-      console.error("Failed to load services:", error);
+      console.error(
+        "Failed to load services:",
+        error
+      );
 
       setErrorMessage(
         "Unable to load services. Please try again."
@@ -57,7 +72,6 @@ function ServicesPage() {
       setLoading(false);
 
     }
-
   };
 
 
@@ -85,9 +99,9 @@ function ServicesPage() {
 
   const resetForm = () => {
 
-    setServiceId("");
     setName("");
     setDescription("");
+
     setEditingService(null);
 
   };
@@ -107,10 +121,11 @@ function ServicesPage() {
 
     if (!name.trim()) {
 
-      setErrorMessage("Service name is required.");
+      setErrorMessage(
+        "Service name is required."
+      );
 
       return;
-
     }
 
 
@@ -119,7 +134,19 @@ function ServicesPage() {
       setSaving(true);
 
 
+      /* =====================================
+         UPDATE EXISTING SERVICE
+         ===================================== */
+
       if (editingService) {
+
+        /*
+         * Existing service ID is retained
+         * internally.
+         *
+         * Changing the service name will
+         * NOT change its Firestore ID.
+         */
 
         await updateService(
           editingService.id,
@@ -133,21 +160,20 @@ function ServicesPage() {
         );
 
 
+      /* =====================================
+         ADD NEW SERVICE
+         ===================================== */
+
       } else {
 
-        if (!serviceId.trim()) {
-
-          setErrorMessage(
-            "Service ID is required."
-          );
-
-          return;
-
-        }
-
+        /*
+         * No Service ID is entered by admin.
+         *
+         * serviceService.js automatically
+         * generates the internal ID.
+         */
 
         await addService(
-          serviceId,
           name,
           description
         );
@@ -175,7 +201,7 @@ function ServicesPage() {
 
       setErrorMessage(
         error.message ||
-          "Unable to save service."
+        "Unable to save service."
       );
 
 
@@ -184,7 +210,6 @@ function ServicesPage() {
       setSaving(false);
 
     }
-
   };
 
 
@@ -194,11 +219,22 @@ function ServicesPage() {
 
   const handleEdit = (service) => {
 
+    /*
+     * service.id stays inside editingService
+     * and is used internally when saving.
+     *
+     * It is not shown or editable by admin.
+     */
+
     setEditingService(service);
 
-    setServiceId(service.id);
-    setName(service.name || "");
-    setDescription(service.description || "");
+    setName(
+      service.name || ""
+    );
+
+    setDescription(
+      service.description || ""
+    );
 
     setErrorMessage("");
     setSuccessMessage("");
@@ -230,9 +266,12 @@ function ServicesPage() {
      ACTIVATE / DEACTIVATE
      ========================================================= */
 
-  const handleStatusChange = async (service) => {
+  const handleStatusChange = async (
+    service
+  ) => {
 
-    const newStatus = !service.isActive;
+    const newStatus =
+      !service.isActive;
 
 
     try {
@@ -240,6 +279,12 @@ function ServicesPage() {
       setErrorMessage("");
       setSuccessMessage("");
 
+
+      /*
+       * service.id is still required
+       * internally to identify the
+       * Firestore document.
+       */
 
       await setServiceActiveStatus(
         service.id,
@@ -270,7 +315,6 @@ function ServicesPage() {
       );
 
     }
-
   };
 
 
@@ -354,33 +398,6 @@ function ServicesPage() {
           >
 
             <div className="service-form-grid">
-
-
-              {/* SERVICE ID */}
-
-              <div className="service-form-group">
-
-                <label htmlFor="serviceId">
-                  Service ID
-                </label>
-
-                <input
-                  id="serviceId"
-                  type="text"
-                  placeholder="Example: registrar"
-                  value={serviceId}
-                  onChange={(event) =>
-                    setServiceId(
-                      event.target.value
-                    )
-                  }
-                  disabled={
-                    saving ||
-                    editingService !== null
-                  }
-                />
-
-              </div>
 
 
               {/* SERVICE NAME */}
@@ -477,9 +494,7 @@ function ServicesPage() {
           {errorMessage && (
 
             <div className="service-error">
-
               {errorMessage}
-
             </div>
 
           )}
@@ -490,9 +505,7 @@ function ServicesPage() {
           {successMessage && (
 
             <div className="service-success">
-
               {successMessage}
-
             </div>
 
           )}
@@ -547,11 +560,6 @@ function ServicesPage() {
                       </h3>
 
 
-                      <p className="service-id">
-                        ID: {service.id}
-                      </p>
-
-
                       <p className="service-description">
 
                         {service.description ||
@@ -603,7 +611,9 @@ function ServicesPage() {
                       type="button"
                       className="service-status-button"
                       onClick={() =>
-                        handleStatusChange(service)
+                        handleStatusChange(
+                          service
+                        )
                       }
                     >
 
@@ -628,9 +638,7 @@ function ServicesPage() {
       </div>
 
     </div>
-
   );
-
 }
 
 
