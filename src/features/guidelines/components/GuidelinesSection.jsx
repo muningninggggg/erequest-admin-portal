@@ -152,7 +152,17 @@ function GuidelinesSection({
      EDIT GUIDELINE
      ========================================= */
 
-  const handleEdit = (guideline) => {
+  const handleEdit = (
+    guideline
+  ) => {
+
+    /*
+     * guideline.id remains inside
+     * the guideline object.
+     *
+     * It is used internally when
+     * updating the Firestore document.
+     */
 
     setGuidelineText(
       guideline.guidelineText || ""
@@ -180,7 +190,9 @@ function GuidelinesSection({
      SAVE GUIDELINE
      ========================================= */
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (
+    event
+  ) => {
 
     event.preventDefault();
 
@@ -202,7 +214,9 @@ function GuidelinesSection({
 
     /* GUIDELINE */
 
-    if (!guidelineText.trim()) {
+    if (
+      !guidelineText.trim()
+    ) {
 
       setErrorMessage(
         "Guideline is required."
@@ -238,6 +252,11 @@ function GuidelinesSection({
 
       if (editingGuideline) {
 
+        /*
+         * Existing ID stays unchanged.
+         * It is only hidden from the admin.
+         */
+
         await updateGuideline(
           editingGuideline.id,
           transactionId,
@@ -257,22 +276,22 @@ function GuidelinesSection({
 
       } else {
 
-        const generatedGuidelineId =
-          await addGuideline(
-            transactionId,
-            guidelineText,
-            displayOrder
-          );
+        /*
+         * guidelineService.js automatically
+         * generates the internal ID.
+         *
+         * The ID is not displayed to admin.
+         */
 
-
-        console.log(
-          "Generated Guideline ID:",
-          generatedGuidelineId
+        await addGuideline(
+          transactionId,
+          guidelineText,
+          displayOrder
         );
 
 
         setSuccessMessage(
-          `Guideline added successfully. ID: ${generatedGuidelineId}`
+          "Guideline added successfully."
         );
 
       }
@@ -323,6 +342,12 @@ function GuidelinesSection({
       setSuccessMessage("");
 
 
+      /*
+       * guideline.id is still required
+       * internally to identify the
+       * correct Firestore document.
+       */
+
       await setGuidelineActiveStatus(
         guideline.id,
         newStatus
@@ -360,7 +385,9 @@ function GuidelinesSection({
      ========================================= */
 
   if (!transactionId) {
+
     return null;
+
   }
 
 
@@ -385,11 +412,13 @@ function GuidelinesSection({
 
 
           <p>
+
             Manage the guidelines for{" "}
 
             <strong>
               {transactionName}
             </strong>.
+
           </p>
 
         </div>
@@ -498,21 +527,6 @@ function GuidelinesSection({
                 rows="4"
               />
 
-
-              {!editingGuideline && (
-
-                <small
-                  style={{
-                    display: "block",
-                    marginTop: "6px",
-                    opacity: 0.7
-                  }}
-                >
-                  Guideline ID will be generated automatically.
-                </small>
-
-              )}
-
             </div>
 
           </div>
@@ -605,9 +619,13 @@ function GuidelinesSection({
                     </h4>
 
 
-                    <p>
-                      ID: {guideline.id}
-                    </p>
+                    {/*
+                      Guideline ID intentionally
+                      hidden from admin interface.
+
+                      guideline.id remains available
+                      internally.
+                    */}
 
                   </div>
 

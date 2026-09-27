@@ -79,7 +79,6 @@ function TransactionsPage() {
       setLoading(false);
 
     }
-
   };
 
 
@@ -110,6 +109,11 @@ function TransactionsPage() {
 
   const handleEdit = (transaction) => {
 
+    /*
+     * transaction.id is still used internally.
+     * It is only hidden from the admin interface.
+     */
+
     navigate(
       `/transactions/edit/${transaction.id}`
     );
@@ -118,6 +122,11 @@ function TransactionsPage() {
 
 
   const handleManage = (transaction) => {
+
+    /*
+     * transaction.id remains necessary
+     * for opening the correct transaction.
+     */
 
     navigate(
       `/transactions/manage/${transaction.id}`
@@ -163,6 +172,11 @@ function TransactionsPage() {
 
     try {
 
+      /*
+       * ID is still used internally here.
+       * Admin does not need to see it.
+       */
+
       setUpdatingId(transaction.id);
 
       setErrorMessage("");
@@ -203,7 +217,6 @@ function TransactionsPage() {
       setUpdatingId(null);
 
     }
-
   };
 
 
@@ -253,11 +266,13 @@ function TransactionsPage() {
             gap: "6px"
           }}
         >
+
           <span aria-hidden="true">
             ←
           </span>
 
           Back to Dashboard
+
         </button>
 
 
@@ -296,7 +311,6 @@ function TransactionsPage() {
         </header>
 
 
-
         {/* ===================================================
             MESSAGES
             =================================================== */}
@@ -317,7 +331,6 @@ function TransactionsPage() {
           </div>
 
         )}
-
 
 
         {/* ===================================================
@@ -343,7 +356,6 @@ function TransactionsPage() {
               </p>
 
             </div>
-
 
 
             {/* FILTER */}
@@ -390,8 +402,9 @@ function TransactionsPage() {
           </div>
 
 
-
-          {/* LOADING */}
+          {/* =================================================
+              TRANSACTION CONTENT
+              ================================================= */}
 
           {loading ? (
 
@@ -433,9 +446,13 @@ function TransactionsPage() {
                         </h3>
 
 
-                        <p className="transaction-id">
-                          ID: {transaction.id}
-                        </p>
+                        {/*
+                          Transaction ID intentionally
+                          hidden from the admin interface.
+
+                          transaction.id still exists and
+                          is used internally.
+                        */}
 
 
                         <div className="transaction-service">
@@ -485,7 +502,6 @@ function TransactionsPage() {
                       </div>
 
 
-
                       {/* STATUS */}
 
                       <span
@@ -505,8 +521,9 @@ function TransactionsPage() {
                     </div>
 
 
-
-                    {/* ACTION BUTTONS */}
+                    {/* =================================================
+                        ACTION BUTTONS
+                        ================================================= */}
 
                     <div className="transaction-item-actions">
 
@@ -526,7 +543,6 @@ function TransactionsPage() {
                       </button>
 
 
-
                       {/* EDIT */}
 
                       <button
@@ -540,7 +556,6 @@ function TransactionsPage() {
                       >
                         Edit Info
                       </button>
-
 
 
                       {/* ACTIVATE / DEACTIVATE */}
