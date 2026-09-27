@@ -1,5 +1,5 @@
 import {
-  BrowserRouter,
+  HashRouter,
   Navigate,
   Route,
   Routes
@@ -25,7 +25,7 @@ function App() {
 
   return (
 
-    <BrowserRouter>
+    <HashRouter>
 
       <Routes>
 
@@ -146,7 +146,7 @@ function App() {
 
       </Routes>
 
-    </BrowserRouter>
+    </HashRouter>
 
   );
 
