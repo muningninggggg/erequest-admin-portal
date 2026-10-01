@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
+
 
 import {
   getAllTransactions,
   getActiveServices,
-  setTransactionActiveStatus
+  setTransactionActiveStatus,
+  deleteTransaction
 } from "../services/transactionService";
+
 
 import "../components/TransactionsPage.css";
 
@@ -13,6 +17,7 @@ import "../components/TransactionsPage.css";
 function TransactionsPage() {
 
   const navigate = useNavigate();
+
 
   const [transactions, setTransactions] =
     useState([]);
@@ -24,6 +29,9 @@ function TransactionsPage() {
     useState(true);
 
   const [updatingId, setUpdatingId] =
+    useState(null);
+
+  const [deletingId, setDeletingId] =
     useState(null);
 
   const [errorMessage, setErrorMessage] =
@@ -215,6 +223,72 @@ function TransactionsPage() {
     } finally {
 
       setUpdatingId(null);
+
+    }
+  };
+
+
+  /* =========================================================
+     DELETE TRANSACTION
+     ========================================================= */
+
+  const handleDelete = async (
+    transaction
+  ) => {
+
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete "${transaction.name}"?\n\nThis action cannot be undone.`
+      );
+
+
+    if (!confirmed) {
+
+      return;
+
+    }
+
+
+    try {
+
+      setDeletingId(
+        transaction.id
+      );
+
+      setErrorMessage("");
+      setSuccessMessage("");
+
+
+      await deleteTransaction(
+        transaction.id
+      );
+
+
+      setSuccessMessage(
+        `${transaction.name} deleted successfully.`
+      );
+
+
+      await loadData();
+
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete transaction:",
+        error
+      );
+
+
+      setErrorMessage(
+        error.message ||
+        "Unable to delete transaction."
+      );
+
+
+    } finally {
+
+      setDeletingId(null);
 
     }
   };
@@ -538,6 +612,10 @@ function TransactionsPage() {
                             transaction
                           )
                         }
+                        disabled={
+                          deletingId ===
+                          transaction.id
+                        }
                       >
                         Manage
                       </button>
@@ -552,6 +630,10 @@ function TransactionsPage() {
                           handleEdit(
                             transaction
                           )
+                        }
+                        disabled={
+                          deletingId ===
+                          transaction.id
                         }
                       >
                         Edit Info
@@ -570,7 +652,9 @@ function TransactionsPage() {
                         }
                         disabled={
                           updatingId ===
-                          transaction.id
+                            transaction.id ||
+                          deletingId ===
+                            transaction.id
                         }
                       >
 
@@ -580,6 +664,32 @@ function TransactionsPage() {
                           : transaction.isActive
                             ? "Deactivate"
                             : "Activate"}
+
+                      </button>
+
+
+                      {/* DELETE */}
+
+                      <button
+                        type="button"
+                        className="transaction-delete-button"
+                        onClick={() =>
+                          handleDelete(
+                            transaction
+                          )
+                        }
+                        disabled={
+                          deletingId ===
+                            transaction.id ||
+                          updatingId ===
+                            transaction.id
+                        }
+                      >
+
+                        {deletingId ===
+                        transaction.id
+                          ? "Deleting..."
+                          : "Delete"}
 
                       </button>
 

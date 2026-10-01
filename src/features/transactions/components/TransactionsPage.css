@@ -941,3 +941,34 @@
   }
 
 }
+
+/* =========================================
+   DELETE TRANSACTION BUTTON
+   ========================================= */
+
+.transaction-delete-button {
+  background-color: #dc3545;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.transaction-delete-button:hover:not(:disabled) {
+  background-color: #b02a37;
+}
+
+.transaction-delete-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.transaction-delete-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

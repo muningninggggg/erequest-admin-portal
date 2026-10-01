@@ -3,7 +3,8 @@ import {
   doc,
   getDocs,
   setDoc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -336,4 +337,31 @@ export async function setTransactionActiveStatus(
     isActive: isActive,
     updatedAt: Date.now()
   });
+}
+
+
+/* =========================================
+   DELETE TRANSACTION
+   ========================================= */
+
+export async function deleteTransaction(
+  transactionId
+) {
+  if (!transactionId) {
+    throw new Error(
+      "Transaction ID is required."
+    );
+  }
+
+
+  const transactionRef = doc(
+    db,
+    TRANSACTIONS_COLLECTION,
+    transactionId
+  );
+
+
+  await deleteDoc(
+    transactionRef
+  );
 }
