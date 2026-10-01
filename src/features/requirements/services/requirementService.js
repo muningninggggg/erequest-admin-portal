@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
+import { addActivityLog } from "../../dashboard/services/activityLogService";
 
 const REQUIREMENTS_COLLECTION = "requirements";
 const TRANSACTIONS_COLLECTION = "transactions";
@@ -18,44 +19,27 @@ const TRANSACTIONS_COLLECTION = "transactions";
    ========================================= */
 
 export async function getAllRequirements() {
-
-  const requirementsRef = collection(
-    db,
-    REQUIREMENTS_COLLECTION
-  );
-
   const snapshot = await getDocs(
-    requirementsRef
+    collection(db, REQUIREMENTS_COLLECTION)
   );
 
-  const requirements = snapshot.docs.map(
-    (document) => ({
-      id: document.id,
-      ...document.data()
-    })
-  );
-
+  const requirements = snapshot.docs.map((document) => ({
+    id: document.id,
+    ...document.data()
+  }));
 
   requirements.sort((a, b) => {
-
     const transactionCompare =
       (a.transactionId || "").localeCompare(
         b.transactionId || ""
       );
 
-
     if (transactionCompare !== 0) {
       return transactionCompare;
     }
 
-
-    return (
-      (a.displayOrder || 0) -
-      (b.displayOrder || 0)
-    );
-
+    return (a.displayOrder || 0) - (b.displayOrder || 0);
   });
-
 
   return requirements;
 }
@@ -63,21 +47,12 @@ export async function getAllRequirements() {
 
 /* =========================================
    GET ACTIVE TRANSACTIONS
-   Used for Transaction dropdown
    ========================================= */
 
 export async function getActiveTransactions() {
-
-  const transactionsRef = collection(
-    db,
-    TRANSACTIONS_COLLECTION
-  );
-
-
   const snapshot = await getDocs(
-    transactionsRef
+    collection(db, TRANSACTIONS_COLLECTION)
   );
-
 
   const transactions = snapshot.docs
     .map((document) => ({
@@ -89,115 +64,73 @@ export async function getActiveTransactions() {
         transaction.isActive === true
     );
 
-
   transactions.sort((a, b) =>
-    (a.name || "").localeCompare(
-      b.name || ""
-    )
+    (a.name || "").localeCompare(b.name || "")
   );
-
 
   return transactions;
 }
 
 
 /* =========================================
+   GET TRANSACTION NAME
+   Used for Recent Updates
+   ========================================= */
+
+async function getTransactionName(transactionId) {
+  if (!transactionId) {
+    return "";
+  }
+
+  const snapshot = await getDocs(
+    collection(db, TRANSACTIONS_COLLECTION)
+  );
+
+  const transaction = snapshot.docs.find(
+    (document) => document.id === transactionId
+  );
+
+  return transaction?.data()?.name || "";
+}
+
+
+/* =========================================
    CREATE ID-FRIENDLY NAME
-
-   Example:
-
-   "School ID"
-   ->
-   "school_id"
-
-   "Certificate of Enrollment"
-   ->
-   "certificate_of_enrollment"
    ========================================= */
 
 function createIdName(name) {
-
   return name
     .trim()
     .toLowerCase()
-
-    // Remove special characters
     .replace(/[^a-z0-9\s_-]/g, "")
-
-    // Spaces become underscores
     .replace(/\s+/g, "_")
-
-    // Multiple underscores become one
     .replace(/_+/g, "_")
-
-    // Remove underscore at beginning/end
     .replace(/^_+|_+$/g, "");
 }
 
 
 /* =========================================
    GET NEXT REQUIREMENT NUMBER
-
-   Example existing IDs:
-
-   school_id_001
-   registration_form_002
-   valid_id_003
-
-   Next number:
-   4
    ========================================= */
 
 async function getNextRequirementNumber() {
-
-  const requirementsRef = collection(
-    db,
-    REQUIREMENTS_COLLECTION
-  );
-
-
   const snapshot = await getDocs(
-    requirementsRef
+    collection(db, REQUIREMENTS_COLLECTION)
   );
-
 
   let highestNumber = 0;
 
-
   snapshot.docs.forEach((document) => {
-
-    const requirementId =
-      document.id;
-
-
-    /*
-     * Find the number at the end.
-     *
-     * Example:
-     *
-     * school_id_001
-     *             ↓
-     *             001
-     */
-
-    const match =
-      requirementId.match(/_(\d+)$/);
-
+    const match = document.id.match(/_(\d+)$/);
 
     if (match) {
-
-      const number =
-        parseInt(match[1], 10);
-
+      const number = parseInt(match[1], 10);
 
       if (number > highestNumber) {
         highestNumber = number;
       }
-
     }
-
   });
-
 
   return highestNumber + 1;
 }
@@ -207,33 +140,19 @@ async function getNextRequirementNumber() {
    GENERATE REQUIREMENT ID
    ========================================= */
 
-async function generateRequirementId(
-  requirementText
-) {
-
-  const idName =
-    createIdName(requirementText);
-
+async function generateRequirementId(requirementText) {
+  const idName = createIdName(requirementText);
 
   if (!idName) {
-
     throw new Error(
       "Unable to generate Requirement ID."
     );
-
   }
 
-
-  const nextNumber =
-    await getNextRequirementNumber();
-
+  const nextNumber = await getNextRequirementNumber();
 
   const formattedNumber =
-    String(nextNumber).padStart(
-      3,
-      "0"
-    );
-
+    String(nextNumber).padStart(3, "0");
 
   return `${idName}_${formattedNumber}`;
 }
@@ -241,14 +160,6 @@ async function generateRequirementId(
 
 /* =========================================
    ADD REQUIREMENT
-
-   NO MANUAL REQUIREMENT ID
-
-   Example:
-
-   School ID
-   ->
-   school_id_001
    ========================================= */
 
 export async function addRequirement(
@@ -256,60 +167,35 @@ export async function addRequirement(
   requirementText,
   displayOrder
 ) {
-
-  const cleanTransactionId =
-    transactionId.trim();
-
-
-  const cleanRequirementText =
-    requirementText.trim();
-
-
-  const cleanDisplayOrder =
-    Number(displayOrder);
-
-
-  /* VALIDATION */
+  const cleanTransactionId = transactionId.trim();
+  const cleanRequirementText = requirementText.trim();
+  const cleanDisplayOrder = Number(displayOrder);
 
   if (!cleanTransactionId) {
-
     throw new Error(
       "Please select a transaction."
     );
-
   }
 
-
   if (!cleanRequirementText) {
-
     throw new Error(
       "Requirement is required."
     );
-
   }
-
 
   if (
     !Number.isInteger(cleanDisplayOrder) ||
     cleanDisplayOrder < 1
   ) {
-
     throw new Error(
       "Display order must be a number greater than 0."
     );
-
   }
-
-
-  /* =========================================
-     GENERATE ID
-     ========================================= */
 
   const requirementId =
     await generateRequirementId(
       cleanRequirementText
     );
-
 
   const requirementRef = doc(
     db,
@@ -317,38 +203,31 @@ export async function addRequirement(
     requirementId
   );
 
+  const currentTime = Date.now();
 
-  /* =========================================
-     SAVE REQUIREMENT
-     ========================================= */
+  await setDoc(requirementRef, {
+    transactionId: cleanTransactionId,
+    requirementText: cleanRequirementText,
+    displayOrder: cleanDisplayOrder,
+    isActive: true,
+    createdAt: currentTime,
+    updatedAt: currentTime
+  });
 
-  await setDoc(
-    requirementRef,
-    {
+  /* ACTIVITY LOG */
 
-      transactionId:
-        cleanTransactionId,
+  const transactionName =
+    await getTransactionName(cleanTransactionId);
 
-      requirementText:
-        cleanRequirementText,
-
-      displayOrder:
-        cleanDisplayOrder,
-
-      isActive:
-        true,
-
-      createdAt:
-        Date.now(),
-
-      updatedAt:
-        Date.now()
-
-    }
-  );
-
-
-  /* RETURN GENERATED ID */
+  await addActivityLog({
+    type: "requirement",
+    action: "added",
+    title: cleanRequirementText,
+    description: "New requirement added",
+    parentName: transactionName,
+    parentId: cleanTransactionId,
+    recordId: requirementId
+  });
 
   return requirementId;
 }
@@ -356,22 +235,6 @@ export async function addRequirement(
 
 /* =========================================
    UPDATE REQUIREMENT
-
-   IMPORTANT:
-
-   Requirement ID DOES NOT CHANGE
-   when Requirement Text is edited.
-
-   Example:
-
-   Original:
-   school_id_001
-
-   Change text:
-   Valid School ID
-
-   ID stays:
-   school_id_001
    ========================================= */
 
 export async function updateRequirement(
@@ -380,57 +243,36 @@ export async function updateRequirement(
   requirementText,
   displayOrder
 ) {
-
-  const cleanTransactionId =
-    transactionId.trim();
-
-
-  const cleanRequirementText =
-    requirementText.trim();
-
-
-  const cleanDisplayOrder =
-    Number(displayOrder);
-
+  const cleanTransactionId = transactionId.trim();
+  const cleanRequirementText = requirementText.trim();
+  const cleanDisplayOrder = Number(displayOrder);
 
   if (!requirementId) {
-
     throw new Error(
       "Requirement ID is required."
     );
-
   }
 
-
   if (!cleanTransactionId) {
-
     throw new Error(
       "Please select a transaction."
     );
-
   }
 
-
   if (!cleanRequirementText) {
-
     throw new Error(
       "Requirement is required."
     );
-
   }
-
 
   if (
     !Number.isInteger(cleanDisplayOrder) ||
     cleanDisplayOrder < 1
   ) {
-
     throw new Error(
       "Display order must be a number greater than 0."
     );
-
   }
-
 
   const requirementRef = doc(
     db,
@@ -438,25 +280,27 @@ export async function updateRequirement(
     requirementId
   );
 
+  await updateDoc(requirementRef, {
+    transactionId: cleanTransactionId,
+    requirementText: cleanRequirementText,
+    displayOrder: cleanDisplayOrder,
+    updatedAt: Date.now()
+  });
 
-  await updateDoc(
-    requirementRef,
-    {
+  /* ACTIVITY LOG */
 
-      transactionId:
-        cleanTransactionId,
+  const transactionName =
+    await getTransactionName(cleanTransactionId);
 
-      requirementText:
-        cleanRequirementText,
-
-      displayOrder:
-        cleanDisplayOrder,
-
-      updatedAt:
-        Date.now()
-
-    }
-  );
+  await addActivityLog({
+    type: "requirement",
+    action: "updated",
+    title: cleanRequirementText,
+    description: "Requirement information updated",
+    parentName: transactionName,
+    parentId: cleanTransactionId,
+    recordId: requirementId
+  });
 }
 
 
@@ -468,15 +312,28 @@ export async function setRequirementActiveStatus(
   requirementId,
   isActive
 ) {
-
   if (!requirementId) {
-
     throw new Error(
       "Requirement ID is required."
     );
-
   }
 
+  /* Get requirement before updating */
+  const requirements =
+    await getAllRequirements();
+
+  const requirement = requirements.find(
+    (item) => item.id === requirementId
+  );
+
+  const requirementName =
+    requirement?.requirementText || "Requirement";
+
+  const transactionId =
+    requirement?.transactionId || "";
+
+  const transactionName =
+    await getTransactionName(transactionId);
 
   const requirementRef = doc(
     db,
@@ -484,19 +341,26 @@ export async function setRequirementActiveStatus(
     requirementId
   );
 
+  await updateDoc(requirementRef, {
+    isActive,
+    updatedAt: Date.now()
+  });
 
-  await updateDoc(
-    requirementRef,
-    {
+  /* ACTIVITY LOG */
 
-      isActive:
-        isActive,
-
-      updatedAt:
-        Date.now()
-
-    }
-  );
+  await addActivityLog({
+    type: "requirement",
+    action: isActive
+      ? "activated"
+      : "deactivated",
+    title: requirementName,
+    description: isActive
+      ? "Requirement activated"
+      : "Requirement deactivated",
+    parentName: transactionName,
+    parentId: transactionId,
+    recordId: requirementId
+  });
 }
 
 
@@ -507,15 +371,30 @@ export async function setRequirementActiveStatus(
 export async function deleteRequirement(
   requirementId
 ) {
-
   if (!requirementId) {
-
     throw new Error(
       "Requirement ID is required."
     );
-
   }
 
+  /*
+   * Get information BEFORE deletion.
+   */
+  const requirements =
+    await getAllRequirements();
+
+  const requirement = requirements.find(
+    (item) => item.id === requirementId
+  );
+
+  const requirementName =
+    requirement?.requirementText || "Requirement";
+
+  const transactionId =
+    requirement?.transactionId || "";
+
+  const transactionName =
+    await getTransactionName(transactionId);
 
   const requirementRef = doc(
     db,
@@ -523,8 +402,17 @@ export async function deleteRequirement(
     requirementId
   );
 
+  await deleteDoc(requirementRef);
 
-  await deleteDoc(
-    requirementRef
-  );
+  /* ACTIVITY LOG */
+
+  await addActivityLog({
+    type: "requirement",
+    action: "deleted",
+    title: requirementName,
+    description: "Requirement deleted",
+    parentName: transactionName,
+    parentId: transactionId,
+    recordId: requirementId
+  });
 }

@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
+import { addActivityLog } from "../../dashboard/services/activityLogService";
 
 const TRANSACTIONS_COLLECTION = "transactions";
 const SERVICES_COLLECTION = "services";
@@ -18,12 +19,9 @@ const SERVICES_COLLECTION = "services";
    ========================================= */
 
 export async function getAllTransactions() {
-  const transactionsRef = collection(
-    db,
-    TRANSACTIONS_COLLECTION
+  const snapshot = await getDocs(
+    collection(db, TRANSACTIONS_COLLECTION)
   );
-
-  const snapshot = await getDocs(transactionsRef);
 
   const transactions = snapshot.docs.map((document) => ({
     id: document.id,
@@ -40,16 +38,12 @@ export async function getAllTransactions() {
 
 /* =========================================
    GET ACTIVE SERVICES
-   For Service dropdown
    ========================================= */
 
 export async function getActiveServices() {
-  const servicesRef = collection(
-    db,
-    SERVICES_COLLECTION
+  const snapshot = await getDocs(
+    collection(db, SERVICES_COLLECTION)
   );
-
-  const snapshot = await getDocs(servicesRef);
 
   const services = snapshot.docs
     .map((document) => ({
@@ -68,59 +62,32 @@ export async function getActiveServices() {
 
 /* =========================================
    CREATE ID-FRIENDLY NAME
-
-   Example:
-   "Getting Prospectus"
-   becomes:
-   "getting_prospectus"
    ========================================= */
 
 function createIdName(name) {
   return name
     .trim()
     .toLowerCase()
-
-    // Remove special characters
     .replace(/[^a-z0-9\s_-]/g, "")
-
-    // Spaces become underscore
     .replace(/\s+/g, "_")
-
-    // Multiple underscores become one
     .replace(/_+/g, "_")
-
-    // Remove underscore at beginning/end
     .replace(/^_+|_+$/g, "");
 }
 
 
 /* =========================================
    GET NEXT TRANSACTION NUMBER
-
-   Example:
-   Existing:
-   getting_prospectus_001
-   updating_prospectus_002
-
-   Next transaction:
-   request_tor_003
    ========================================= */
 
 async function getNextTransactionNumber() {
-  const transactionsRef = collection(
-    db,
-    TRANSACTIONS_COLLECTION
+  const snapshot = await getDocs(
+    collection(db, TRANSACTIONS_COLLECTION)
   );
-
-  const snapshot = await getDocs(transactionsRef);
 
   let highestNumber = 0;
 
   snapshot.docs.forEach((document) => {
-    const transactionId = document.id;
-
-    // Get last 3+ digit number from ID
-    const match = transactionId.match(/_(\d+)$/);
+    const match = document.id.match(/_(\d+)$/);
 
     if (match) {
       const number = parseInt(match[1], 10);
@@ -137,13 +104,6 @@ async function getNextTransactionNumber() {
 
 /* =========================================
    GENERATE TRANSACTION ID
-
-   Example:
-   Name: Getting Prospectus
-   Number: 1
-
-   Result:
-   getting_prospectus_001
    ========================================= */
 
 async function generateTransactionId(name) {
@@ -155,20 +115,37 @@ async function generateTransactionId(name) {
     );
   }
 
-  const nextNumber =
-    await getNextTransactionNumber();
-
-  const formattedNumber = String(
-    nextNumber
-  ).padStart(3, "0");
+  const nextNumber = await getNextTransactionNumber();
+  const formattedNumber = String(nextNumber).padStart(3, "0");
 
   return `${idName}_${formattedNumber}`;
 }
 
 
 /* =========================================
+   GET SERVICE NAME
+   Used for Recent Updates
+   ========================================= */
+
+async function getServiceName(serviceId) {
+  if (!serviceId) {
+    return "";
+  }
+
+  const snapshot = await getDocs(
+    collection(db, SERVICES_COLLECTION)
+  );
+
+  const service = snapshot.docs.find(
+    (document) => document.id === serviceId
+  );
+
+  return service?.data()?.name || "";
+}
+
+
+/* =========================================
    ADD TRANSACTION
-   AUTO-GENERATED TRANSACTION ID
    ========================================= */
 
 export async function addTransaction(
@@ -185,25 +162,15 @@ export async function addTransaction(
   const cleanOfficeSchedule = officeSchedule.trim();
 
   if (!cleanServiceId) {
-    throw new Error(
-      "Please select a service."
-    );
+    throw new Error("Please select a service.");
   }
 
   if (!cleanName) {
-    throw new Error(
-      "Transaction name is required."
-    );
+    throw new Error("Transaction name is required.");
   }
-
-
-  /* =========================================
-     AUTO GENERATE TRANSACTION ID
-     ========================================= */
 
   const transactionId =
     await generateTransactionId(cleanName);
-
 
   const transactionRef = doc(
     db,
@@ -211,33 +178,31 @@ export async function addTransaction(
     transactionId
   );
 
-
-  /* =========================================
-     SAVE TO FIRESTORE
-     ========================================= */
+  const currentTime = Date.now();
 
   await setDoc(transactionRef, {
     serviceId: cleanServiceId,
-
     name: cleanName,
-
     description: cleanDescription,
-
     officeName: cleanOfficeName,
-
     officeSchedule: cleanOfficeSchedule,
-
     isActive: true,
-
-    createdAt: Date.now(),
-
-    updatedAt: Date.now()
+    createdAt: currentTime,
+    updatedAt: currentTime
   });
 
+  const serviceName =
+    await getServiceName(cleanServiceId);
 
-  /* =========================================
-     RETURN GENERATED ID
-     ========================================= */
+  await addActivityLog({
+    type: "transaction",
+    action: "added",
+    title: cleanName,
+    description: "New transaction added",
+    parentName: serviceName,
+    parentId: cleanServiceId,
+    recordId: transactionId
+  });
 
   return transactionId;
 }
@@ -245,24 +210,7 @@ export async function addTransaction(
 
 /* =========================================
    UPDATE TRANSACTION
-
-   IMPORTANT:
-   The Transaction ID does NOT change
-   when the transaction name is edited.
-
-   Example:
-
-   Original:
-   getting_prospectus_001
-
-   Name changed to:
-   Request Prospectus
-
-   ID remains:
-   getting_prospectus_001
-
-   This protects Requirements,
-   Procedures, Notifications, etc.
+   ID DOES NOT CHANGE
    ========================================= */
 
 export async function updateTransaction(
@@ -273,22 +221,19 @@ export async function updateTransaction(
   officeName,
   officeSchedule
 ) {
+  const cleanServiceId = serviceId.trim();
+  const cleanName = name.trim();
+
   if (!transactionId) {
-    throw new Error(
-      "Transaction ID is required."
-    );
+    throw new Error("Transaction ID is required.");
   }
 
-  if (!serviceId.trim()) {
-    throw new Error(
-      "Please select a service."
-    );
+  if (!cleanServiceId) {
+    throw new Error("Please select a service.");
   }
 
-  if (!name.trim()) {
-    throw new Error(
-      "Transaction name is required."
-    );
+  if (!cleanName) {
+    throw new Error("Transaction name is required.");
   }
 
   const transactionRef = doc(
@@ -298,23 +243,31 @@ export async function updateTransaction(
   );
 
   await updateDoc(transactionRef, {
-    serviceId: serviceId.trim(),
-
-    name: name.trim(),
-
+    serviceId: cleanServiceId,
+    name: cleanName,
     description: description.trim(),
-
     officeName: officeName.trim(),
-
     officeSchedule: officeSchedule.trim(),
-
     updatedAt: Date.now()
+  });
+
+  const serviceName =
+    await getServiceName(cleanServiceId);
+
+  await addActivityLog({
+    type: "transaction",
+    action: "updated",
+    title: cleanName,
+    description: "Transaction information updated",
+    parentName: serviceName,
+    parentId: cleanServiceId,
+    recordId: transactionId
   });
 }
 
 
 /* =========================================
-   ACTIVATE / DEACTIVATE
+   ACTIVATE / DEACTIVATE TRANSACTION
    ========================================= */
 
 export async function setTransactionActiveStatus(
@@ -322,10 +275,23 @@ export async function setTransactionActiveStatus(
   isActive
 ) {
   if (!transactionId) {
-    throw new Error(
-      "Transaction ID is required."
-    );
+    throw new Error("Transaction ID is required.");
   }
+
+  const transactions = await getAllTransactions();
+
+  const transaction = transactions.find(
+    (item) => item.id === transactionId
+  );
+
+  const transactionName =
+    transaction?.name || "Transaction";
+
+  const serviceId =
+    transaction?.serviceId || "";
+
+  const serviceName =
+    await getServiceName(serviceId);
 
   const transactionRef = doc(
     db,
@@ -334,8 +300,22 @@ export async function setTransactionActiveStatus(
   );
 
   await updateDoc(transactionRef, {
-    isActive: isActive,
+    isActive,
     updatedAt: Date.now()
+  });
+
+  await addActivityLog({
+    type: "transaction",
+    action: isActive
+      ? "activated"
+      : "deactivated",
+    title: transactionName,
+    description: isActive
+      ? "Transaction activated"
+      : "Transaction deactivated",
+    parentName: serviceName,
+    parentId: serviceId,
+    recordId: transactionId
   });
 }
 
@@ -348,11 +328,28 @@ export async function deleteTransaction(
   transactionId
 ) {
   if (!transactionId) {
-    throw new Error(
-      "Transaction ID is required."
-    );
+    throw new Error("Transaction ID is required.");
   }
 
+  /*
+   * Get transaction information BEFORE
+   * deleting it so the Recent Update
+   * still knows its name and service.
+   */
+  const transactions = await getAllTransactions();
+
+  const transaction = transactions.find(
+    (item) => item.id === transactionId
+  );
+
+  const transactionName =
+    transaction?.name || "Transaction";
+
+  const serviceId =
+    transaction?.serviceId || "";
+
+  const serviceName =
+    await getServiceName(serviceId);
 
   const transactionRef = doc(
     db,
@@ -360,8 +357,15 @@ export async function deleteTransaction(
     transactionId
   );
 
+  await deleteDoc(transactionRef);
 
-  await deleteDoc(
-    transactionRef
-  );
+  await addActivityLog({
+    type: "transaction",
+    action: "deleted",
+    title: transactionName,
+    description: "Transaction deleted",
+    parentName: serviceName,
+    parentId: serviceId,
+    recordId: transactionId
+  });
 }

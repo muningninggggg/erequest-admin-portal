@@ -1,164 +1,234 @@
-import {
-  useEffect,
-  useState
-} from "react";
+import { useEffect, useState } from "react";
 
 import {
-  useNavigate
-} from "react-router-dom";
+  getRecentActivityLogs,
+  formatActivityDateTime
+} from "../services/activityLogService";
 
-import {
-  getAllServices
-} from "../../services/services/serviceService";
-
-import {
-  getAllTransactions
-} from "../../transactions/services/transactionService";
-
-import {
-  getAllAnnouncements
-} from "../../announcements/services/announcementService";
-
-import AdminSearch
-  from "../../search/components/AdminSearch";
+import { getAllServices } from "../../services/services/serviceService";
+import { getAllTransactions } from "../../transactions/services/transactionService";
+import { getAllAnnouncements } from "../../announcements/services/announcementService";
+import AdminSearch from "../../search/components/AdminSearch";
 
 import "../components/DashboardPage.css";
 
 
+/* =========================================================
+   ICONS
+   ========================================================= */
+
+function FolderIcon() {
+  return (
+    <svg viewBox="0 0 24 24">
+      <path
+        d="M3.5 7.5h6l2-2h9v13h-17v-11Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function DocumentIcon() {
+  return (
+    <svg viewBox="0 0 24 24">
+      <path
+        d="M6 3.5h8l4 4V20H6V3.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 3.5v4h4M9 12h6M9 16h6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function AnnouncementIcon() {
+  return (
+    <svg viewBox="0 0 24 24">
+      <path
+        d="M4 13V9h4l8-4v12l-8-4H4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 13l1.5 5H12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24">
+      <circle
+        cx="12"
+        cy="12"
+        r="8.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M12 7.5V12l3 2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+
+/* =========================================================
+   ACTIVITY HELPERS
+   ========================================================= */
+
+function formatWord(value = "") {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getActivityHeading(activity) {
+  return `${formatWord(activity.type || "Record")} ${formatWord(
+    activity.action || "Updated"
+  )}`;
+}
+
+function getActivityClass(type) {
+  switch (type) {
+    case "service":
+      return "activity-blue";
+
+    case "transaction":
+      return "activity-blue";
+
+    case "requirement":
+      return "activity-green";
+
+    case "procedure":
+      return "activity-purple";
+
+    case "guideline":
+      return "activity-purple";
+
+    case "announcement":
+      return "activity-orange";
+
+    default:
+      return "activity-blue";
+  }
+}
+
+function ActivityIcon({ type }) {
+  if (type === "announcement") {
+    return <AnnouncementIcon />;
+  }
+
+  if (
+    type === "transaction" ||
+    type === "requirement" ||
+    type === "procedure" ||
+    type === "guideline"
+  ) {
+    return <DocumentIcon />;
+  }
+
+  return <FolderIcon />;
+}
+
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
 function DashboardPage() {
+  const [serviceCount, setServiceCount] = useState(0);
+  const [transactionCount, setTransactionCount] = useState(0);
+  const [announcementCount, setAnnouncementCount] = useState(0);
 
-  const navigate = useNavigate();
+  const [recentActivities, setRecentActivities] = useState([]);
 
+  const [loading, setLoading] = useState(true);
+  const [recentLoading, setRecentLoading] = useState(true);
 
-  /* =========================================================
-     DASHBOARD COUNTS
-     ========================================================= */
-
-  const [serviceCount, setServiceCount] =
-    useState(0);
-
-  const [transactionCount, setTransactionCount] =
-    useState(0);
-
-  const [announcementCount, setAnnouncementCount] =
-    useState(0);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
 
   /* =========================================================
-     LOAD DASHBOARD DATA
+     LOAD SUMMARY
      ========================================================= */
 
-  const loadDashboardData = async () => {
-
+  async function loadDashboardData() {
     try {
-
       setLoading(true);
       setErrorMessage("");
 
-
-      const [
-        services,
-        transactions,
-        announcements
-      ] = await Promise.all([
-
+      const [services, transactions, announcements] = await Promise.all([
         getAllServices(),
-
         getAllTransactions(),
-
         getAllAnnouncements()
-
       ]);
 
-
-      /* =====================================================
-         ACTIVE SERVICES
-         ===================================================== */
-
-      const activeServices =
-        services.filter(
-          (service) =>
-            service.isActive === true
-        );
-
-
-      /* =====================================================
-         ACTIVE TRANSACTIONS
-         ===================================================== */
-
-      const activeTransactions =
-        transactions.filter(
-          (transaction) =>
-            transaction.isActive === true
-        );
-
-
-      /* =====================================================
-         ACTIVE ANNOUNCEMENTS
-         ===================================================== */
-
-      const activeAnnouncements =
-        announcements.filter(
-          (announcement) =>
-            announcement.isActive === true
-        );
-
-
-      /* =====================================================
-         UPDATE COUNTS
-         ===================================================== */
-
       setServiceCount(
-        activeServices.length
+        services.filter((item) => item.isActive === true).length
       );
-
 
       setTransactionCount(
-        activeTransactions.length
+        transactions.filter((item) => item.isActive === true).length
       );
-
 
       setAnnouncementCount(
-        activeAnnouncements.length
+        announcements.filter((item) => item.isActive === true).length
       );
-
-
     } catch (error) {
-
-      console.error(
-        "Failed to load dashboard data:",
-        error
-      );
-
-
-      setErrorMessage(
-        "Unable to load dashboard summary."
-      );
-
-
+      console.error("Dashboard error:", error);
+      setErrorMessage("Unable to load dashboard information.");
     } finally {
-
       setLoading(false);
-
     }
-
-  };
+  }
 
 
   /* =========================================================
-     LOAD WHEN DASHBOARD OPENS
+     LOAD RECENT UPDATES
      ========================================================= */
 
+  async function loadRecentUpdates() {
+    try {
+      setRecentLoading(true);
+
+      const activities = await getRecentActivityLogs();
+
+      setRecentActivities(activities.slice(0, 5));
+    } catch (error) {
+      console.error("Recent updates error:", error);
+    } finally {
+      setRecentLoading(false);
+    }
+  }
+
+
   useEffect(() => {
-
     loadDashboardData();
-
+    loadRecentUpdates();
   }, []);
 
 
@@ -167,209 +237,208 @@ function DashboardPage() {
      ========================================================= */
 
   return (
-
     <div className="dashboard-page">
 
-
-      {/* =====================================================
-          HEADER
-          ===================================================== */}
-
+      {/* HEADER */}
       <header className="dashboard-header">
-
-
-        {/* LEFT SIDE */}
-
         <div className="dashboard-header-text">
-
-          <h1>
-            Dashboard
-          </h1>
+          <h1>Dashboard</h1>
 
           <p>
             Welcome to the E-ReQuest Administrator Portal.
           </p>
-
         </div>
-
-
-        {/* RIGHT SIDE - GLOBAL SEARCH */}
 
         <div className="dashboard-header-search">
-
           <AdminSearch />
-
         </div>
-
-
       </header>
 
 
-      {/* =====================================================
-          SUMMARY CARDS
-          ===================================================== */}
-
+      {/* SUMMARY */}
       <section className="dashboard-summary">
 
+        <div className="summary-card summary-card-services">
+          <div>
+            <span className="summary-title">Services</span>
 
-        {/* SERVICES */}
+            <strong className="summary-number">
+              {loading ? "..." : serviceCount}
+            </strong>
 
-        <div className="summary-card">
+            <span className="summary-description">
+              Active services
+            </span>
+          </div>
 
-          <h3>
-            Services
-          </h3>
-
-          <p className="summary-number">
-
-            {loading
-              ? "..."
-              : serviceCount}
-
-          </p>
-
-          <span>
-            Active services
-          </span>
-
+          <div className="summary-icon summary-icon-blue">
+            <FolderIcon />
+          </div>
         </div>
 
 
-        {/* TRANSACTIONS */}
+        <div className="summary-card summary-card-transactions">
+          <div>
+            <span className="summary-title">
+              Transactions / Documents
+            </span>
 
-        <div className="summary-card">
+            <strong className="summary-number">
+              {loading ? "..." : transactionCount}
+            </strong>
 
-          <h3>
-            Transactions / Documents
-          </h3>
+            <span className="summary-description">
+              Active transactions
+            </span>
+          </div>
 
-          <p className="summary-number">
-
-            {loading
-              ? "..."
-              : transactionCount}
-
-          </p>
-
-          <span>
-            Active transactions
-          </span>
-
+          <div className="summary-icon summary-icon-green">
+            <DocumentIcon />
+          </div>
         </div>
 
 
-        {/* ANNOUNCEMENTS */}
+        <div className="summary-card summary-card-announcements">
+          <div>
+            <span className="summary-title">
+              Announcements
+            </span>
 
-        <div className="summary-card">
+            <strong className="summary-number">
+              {loading ? "..." : announcementCount}
+            </strong>
 
-          <h3>
-            Announcements
-          </h3>
+            <span className="summary-description">
+              Active announcements
+            </span>
+          </div>
 
-          <p className="summary-number">
-
-            {loading
-              ? "..."
-              : announcementCount}
-
-          </p>
-
-          <span>
-            Active announcements
-          </span>
-
+          <div className="summary-icon summary-icon-orange">
+            <AnnouncementIcon />
+          </div>
         </div>
-
 
       </section>
 
 
-      {/* =====================================================
-          ERROR MESSAGE
-          ===================================================== */}
-
       {errorMessage && (
-
-        <p className="dashboard-error-message">
-
+        <div className="dashboard-error-message">
           {errorMessage}
-
-        </p>
-
+        </div>
       )}
 
 
       {/* =====================================================
-          CONTENT MANAGEMENT
+          RECENT UPDATES
           ===================================================== */}
 
-      <section className="dashboard-content">
+      <section className="recent-updates-card">
 
-        <div className="dashboard-panel">
+        <div className="recent-updates-header">
 
+          <div className="recent-updates-title">
+            <div className="recent-clock-icon">
+              <ClockIcon />
+            </div>
 
-          <h2>
-            Content Management
-          </h2>
-
-
-          <p>
-            Manage the information displayed in the
-            E-ReQuest student application.
-          </p>
-
-
-          <div className="management-grid">
-
-
-            {/* SERVICES */}
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/services")
-              }
-            >
-              Services
-            </button>
-
-
-            {/* TRANSACTIONS */}
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/transactions")
-              }
-            >
-              Transactions / Documents
-            </button>
-
-
-            {/* ANNOUNCEMENTS */}
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/announcements")
-              }
-            >
-              Announcements
-            </button>
-
-
+            <h2>Recent Updates</h2>
           </div>
+
+          <span className="recent-updates-count">
+            Latest 5
+          </span>
 
         </div>
 
+
+        {/* LOADING */}
+
+        {recentLoading && (
+          <div className="recent-updates-message">
+            Loading recent updates...
+          </div>
+        )}
+
+
+        {/* EMPTY */}
+
+        {!recentLoading && recentActivities.length === 0 && (
+          <div className="recent-updates-empty">
+            <div className="recent-empty-icon">
+              <ClockIcon />
+            </div>
+
+            <strong>No recent updates</strong>
+
+            <span>
+              Administrator activities will appear here.
+            </span>
+          </div>
+        )}
+
+
+        {/* LIST */}
+
+        {!recentLoading && recentActivities.length > 0 && (
+          <div className="recent-updates-list">
+
+            {recentActivities.map((activity) => (
+              <div
+                className="recent-update-row"
+                key={activity.id}
+              >
+
+                <div
+                  className={`recent-update-icon ${getActivityClass(
+                    activity.type
+                  )}`}
+                >
+                  <ActivityIcon type={activity.type} />
+                </div>
+
+
+                <div className="recent-update-details">
+
+                  <strong className="recent-update-heading">
+                    {getActivityHeading(activity)}
+                  </strong>
+
+
+                  <span className="recent-update-description">
+
+                    {activity.title || "Updated record"}
+
+                    {activity.description
+                      ? ` — ${activity.description}`
+                      : ""}
+
+                  </span>
+
+
+                  {activity.parentName && (
+                    <span className="recent-update-parent">
+                      {activity.parentName}
+                    </span>
+                  )}
+
+                </div>
+
+
+                <div className="recent-update-date">
+                  {formatActivityDateTime(activity.createdAt) ||
+                    "Just now"}
+                </div>
+
+              </div>
+            ))}
+
+          </div>
+        )}
+
       </section>
 
-
     </div>
-
   );
-
 }
-
 
 export default DashboardPage;

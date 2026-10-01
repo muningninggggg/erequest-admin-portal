@@ -8,10 +8,10 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
+import { addActivityLog } from "../../dashboard/services/activityLogService";
 
-
-const GUIDELINES_COLLECTION =
-  "department_guidelines";
+const GUIDELINES_COLLECTION = "department_guidelines";
+const TRANSACTIONS_COLLECTION = "transactions";
 
 
 /* =========================================
@@ -19,130 +19,91 @@ const GUIDELINES_COLLECTION =
    ========================================= */
 
 export async function getAllGuidelines() {
-
-  const guidelinesRef = collection(
-    db,
-    GUIDELINES_COLLECTION
-  );
-
   const snapshot = await getDocs(
-    guidelinesRef
+    collection(db, GUIDELINES_COLLECTION)
   );
 
-
-  const guidelines = snapshot.docs.map(
-    (document) => ({
-      id: document.id,
-      ...document.data()
-    })
-  );
-
+  const guidelines = snapshot.docs.map((document) => ({
+    id: document.id,
+    ...document.data()
+  }));
 
   guidelines.sort((a, b) => {
-
     const transactionCompare =
       (a.transactionId || "").localeCompare(
         b.transactionId || ""
       );
 
-
     if (transactionCompare !== 0) {
       return transactionCompare;
     }
 
-
-    return (
-      (a.displayOrder || 0) -
-      (b.displayOrder || 0)
-    );
-
+    return (a.displayOrder || 0) - (b.displayOrder || 0);
   });
-
 
   return guidelines;
 }
 
 
 /* =========================================
-   CREATE ID-FRIENDLY NAME
+   GET TRANSACTION NAME
+   For Recent Updates
+   ========================================= */
 
-   Example:
-   "Bring Original Documents"
-   ->
-   "bring_original_documents"
+async function getTransactionName(transactionId) {
+  if (!transactionId) {
+    return "";
+  }
+
+  const snapshot = await getDocs(
+    collection(db, TRANSACTIONS_COLLECTION)
+  );
+
+  const transaction = snapshot.docs.find(
+    (document) => document.id === transactionId
+  );
+
+  return transaction?.data()?.name || "";
+}
+
+
+/* =========================================
+   CREATE ID-FRIENDLY NAME
    ========================================= */
 
 function createIdName(name) {
-
   return name
     .trim()
     .toLowerCase()
-
-    // Remove special characters
     .replace(/[^a-z0-9\s_-]/g, "")
-
-    // Spaces become underscores
     .replace(/\s+/g, "_")
-
-    // Multiple underscores become one
     .replace(/_+/g, "_")
-
-    // Remove underscores at beginning/end
     .replace(/^_+|_+$/g, "");
 }
 
 
 /* =========================================
    GET NEXT GUIDELINE NUMBER
-
-   Example existing:
-   bring_original_documents_001
-   observe_office_hours_002
-
-   Next:
-   3
    ========================================= */
 
 async function getNextGuidelineNumber() {
-
-  const guidelinesRef = collection(
-    db,
-    GUIDELINES_COLLECTION
-  );
-
-
   const snapshot = await getDocs(
-    guidelinesRef
+    collection(db, GUIDELINES_COLLECTION)
   );
-
 
   let highestNumber = 0;
 
-
   snapshot.docs.forEach((document) => {
-
-    const guidelineId =
-      document.id;
-
-
-    const match =
-      guidelineId.match(/_(\d+)$/);
-
+    const match = document.id.match(/_(\d+)$/);
 
     if (match) {
-
-      const number =
-        parseInt(match[1], 10);
-
+      const number = parseInt(match[1], 10);
 
       if (number > highestNumber) {
         highestNumber = number;
       }
-
     }
-
   });
-
 
   return highestNumber + 1;
 }
@@ -152,33 +113,17 @@ async function getNextGuidelineNumber() {
    GENERATE GUIDELINE ID
    ========================================= */
 
-async function generateGuidelineId(
-  guidelineText
-) {
-
-  const idName =
-    createIdName(guidelineText);
-
+async function generateGuidelineId(guidelineText) {
+  const idName = createIdName(guidelineText);
 
   if (!idName) {
-
     throw new Error(
       "Unable to generate Guideline ID."
     );
-
   }
 
-
-  const nextNumber =
-    await getNextGuidelineNumber();
-
-
-  const formattedNumber =
-    String(nextNumber).padStart(
-      3,
-      "0"
-    );
-
+  const nextNumber = await getNextGuidelineNumber();
+  const formattedNumber = String(nextNumber).padStart(3, "0");
 
   return `${idName}_${formattedNumber}`;
 }
@@ -186,8 +131,6 @@ async function generateGuidelineId(
 
 /* =========================================
    ADD GUIDELINE
-
-   ID IS GENERATED AUTOMATICALLY
    ========================================= */
 
 export async function addGuideline(
@@ -195,56 +138,33 @@ export async function addGuideline(
   guidelineText,
   displayOrder
 ) {
-
-  const cleanTransactionId =
-    transactionId.trim();
-
-  const cleanGuidelineText =
-    guidelineText.trim();
-
-  const cleanDisplayOrder =
-    Number(displayOrder);
-
-
-  /* VALIDATION */
+  const cleanTransactionId = transactionId.trim();
+  const cleanGuidelineText = guidelineText.trim();
+  const cleanDisplayOrder = Number(displayOrder);
 
   if (!cleanTransactionId) {
-
     throw new Error(
       "Transaction ID is required."
     );
-
   }
 
-
   if (!cleanGuidelineText) {
-
     throw new Error(
       "Guideline is required."
     );
-
   }
-
 
   if (
     !Number.isInteger(cleanDisplayOrder) ||
     cleanDisplayOrder < 1
   ) {
-
     throw new Error(
       "Display order must be greater than 0."
     );
-
   }
 
-
-  /* GENERATE ID */
-
   const guidelineId =
-    await generateGuidelineId(
-      cleanGuidelineText
-    );
-
+    await generateGuidelineId(cleanGuidelineText);
 
   const guidelineRef = doc(
     db,
@@ -252,38 +172,31 @@ export async function addGuideline(
     guidelineId
   );
 
+  const currentTime = Date.now();
 
-  /* SAVE */
+  await setDoc(guidelineRef, {
+    transactionId: cleanTransactionId,
+    guidelineText: cleanGuidelineText,
+    displayOrder: cleanDisplayOrder,
+    isActive: true,
+    createdAt: currentTime,
+    updatedAt: currentTime
+  });
 
-  const currentTime =
-    Date.now();
+  /* ACTIVITY LOG */
 
+  const transactionName =
+    await getTransactionName(cleanTransactionId);
 
-  await setDoc(
-    guidelineRef,
-    {
-
-      transactionId:
-        cleanTransactionId,
-
-      guidelineText:
-        cleanGuidelineText,
-
-      displayOrder:
-        cleanDisplayOrder,
-
-      isActive:
-        true,
-
-      createdAt:
-        currentTime,
-
-      updatedAt:
-        currentTime
-
-    }
-  );
-
+  await addActivityLog({
+    type: "guideline",
+    action: "added",
+    title: cleanGuidelineText,
+    description: "New guideline added",
+    parentName: transactionName,
+    parentId: cleanTransactionId,
+    recordId: guidelineId
+  });
 
   return guidelineId;
 }
@@ -291,9 +204,6 @@ export async function addGuideline(
 
 /* =========================================
    UPDATE GUIDELINE
-
-   IMPORTANT:
-   EXISTING ID DOES NOT CHANGE
    ========================================= */
 
 export async function updateGuideline(
@@ -302,55 +212,36 @@ export async function updateGuideline(
   guidelineText,
   displayOrder
 ) {
-
-  const cleanTransactionId =
-    transactionId.trim();
-
-  const cleanGuidelineText =
-    guidelineText.trim();
-
-  const cleanDisplayOrder =
-    Number(displayOrder);
-
+  const cleanTransactionId = transactionId.trim();
+  const cleanGuidelineText = guidelineText.trim();
+  const cleanDisplayOrder = Number(displayOrder);
 
   if (!guidelineId) {
-
     throw new Error(
       "Guideline ID is required."
     );
-
   }
 
-
   if (!cleanTransactionId) {
-
     throw new Error(
       "Transaction ID is required."
     );
-
   }
 
-
   if (!cleanGuidelineText) {
-
     throw new Error(
       "Guideline is required."
     );
-
   }
-
 
   if (
     !Number.isInteger(cleanDisplayOrder) ||
     cleanDisplayOrder < 1
   ) {
-
     throw new Error(
       "Display order must be greater than 0."
     );
-
   }
-
 
   const guidelineRef = doc(
     db,
@@ -358,25 +249,27 @@ export async function updateGuideline(
     guidelineId
   );
 
+  await updateDoc(guidelineRef, {
+    transactionId: cleanTransactionId,
+    guidelineText: cleanGuidelineText,
+    displayOrder: cleanDisplayOrder,
+    updatedAt: Date.now()
+  });
 
-  await updateDoc(
-    guidelineRef,
-    {
+  /* ACTIVITY LOG */
 
-      transactionId:
-        cleanTransactionId,
+  const transactionName =
+    await getTransactionName(cleanTransactionId);
 
-      guidelineText:
-        cleanGuidelineText,
-
-      displayOrder:
-        cleanDisplayOrder,
-
-      updatedAt:
-        Date.now()
-
-    }
-  );
+  await addActivityLog({
+    type: "guideline",
+    action: "updated",
+    title: cleanGuidelineText,
+    description: "Guideline information updated",
+    parentName: transactionName,
+    parentId: cleanTransactionId,
+    recordId: guidelineId
+  });
 }
 
 
@@ -388,15 +281,29 @@ export async function setGuidelineActiveStatus(
   guidelineId,
   isActive
 ) {
-
   if (!guidelineId) {
-
     throw new Error(
       "Guideline ID is required."
     );
-
   }
 
+  /*
+   * Get guideline information first.
+   */
+  const guidelines = await getAllGuidelines();
+
+  const guideline = guidelines.find(
+    (item) => item.id === guidelineId
+  );
+
+  const guidelineName =
+    guideline?.guidelineText || "Guideline";
+
+  const transactionId =
+    guideline?.transactionId || "";
+
+  const transactionName =
+    await getTransactionName(transactionId);
 
   const guidelineRef = doc(
     db,
@@ -404,19 +311,26 @@ export async function setGuidelineActiveStatus(
     guidelineId
   );
 
+  await updateDoc(guidelineRef, {
+    isActive,
+    updatedAt: Date.now()
+  });
 
-  await updateDoc(
-    guidelineRef,
-    {
+  /* ACTIVITY LOG */
 
-      isActive:
-        isActive,
-
-      updatedAt:
-        Date.now()
-
-    }
-  );
+  await addActivityLog({
+    type: "guideline",
+    action: isActive
+      ? "activated"
+      : "deactivated",
+    title: guidelineName,
+    description: isActive
+      ? "Guideline activated"
+      : "Guideline deactivated",
+    parentName: transactionName,
+    parentId: transactionId,
+    recordId: guidelineId
+  });
 }
 
 
@@ -424,18 +338,30 @@ export async function setGuidelineActiveStatus(
    DELETE GUIDELINE
    ========================================= */
 
-export async function deleteGuideline(
-  guidelineId
-) {
-
+export async function deleteGuideline(guidelineId) {
   if (!guidelineId) {
-
     throw new Error(
       "Guideline ID is required."
     );
-
   }
 
+  /*
+   * Get information BEFORE deletion.
+   */
+  const guidelines = await getAllGuidelines();
+
+  const guideline = guidelines.find(
+    (item) => item.id === guidelineId
+  );
+
+  const guidelineName =
+    guideline?.guidelineText || "Guideline";
+
+  const transactionId =
+    guideline?.transactionId || "";
+
+  const transactionName =
+    await getTransactionName(transactionId);
 
   const guidelineRef = doc(
     db,
@@ -443,8 +369,17 @@ export async function deleteGuideline(
     guidelineId
   );
 
+  await deleteDoc(guidelineRef);
 
-  await deleteDoc(
-    guidelineRef
-  );
+  /* ACTIVITY LOG */
+
+  await addActivityLog({
+    type: "guideline",
+    action: "deleted",
+    title: guidelineName,
+    description: "Guideline deleted",
+    parentName: transactionName,
+    parentId: transactionId,
+    recordId: guidelineId
+  });
 }

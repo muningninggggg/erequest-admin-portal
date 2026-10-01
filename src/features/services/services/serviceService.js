@@ -7,79 +7,111 @@ import {
   deleteDoc
 } from "firebase/firestore";
 
-import { db } from "../../../firebase/firebaseConfig";
+import {
+  db
+} from "../../../firebase/firebaseConfig";
+
+import {
+  addActivityLog
+} from "../../dashboard/services/activityLogService";
 
 
-const SERVICES_COLLECTION = "services";
+const SERVICES_COLLECTION =
+  "services";
 
-
-/* =========================================
+/* =========================================================
    GET ALL SERVICES
-   ========================================= */
+   ========================================================= */
 
 export async function getAllServices() {
 
-  const servicesRef = collection(
-    db,
-    SERVICES_COLLECTION
-  );
-
-  const snapshot = await getDocs(
-    servicesRef
-  );
+  const servicesRef =
+    collection(
+      db,
+      SERVICES_COLLECTION
+    );
 
 
-  const services = snapshot.docs.map(
-    (document) => ({
-      id: document.id,
-      ...document.data()
-    })
-  );
+  const snapshot =
+    await getDocs(
+      servicesRef
+    );
 
 
-  // Sort alphabetically by service name
-  services.sort((a, b) =>
-    (a.name || "").localeCompare(
-      b.name || ""
-    )
+  const services =
+    snapshot.docs.map(
+      (document) => ({
+
+        id:
+          document.id,
+
+        ...document.data()
+
+      })
+    );
+
+
+  services.sort(
+    (a, b) =>
+      (a.name || "").localeCompare(
+        b.name || ""
+      )
   );
 
 
   return services;
+
 }
 
 
-/* =========================================
-   CREATE ID NAME
-   ========================================= */
+/* =========================================================
+   CREATE ID-FRIENDLY NAME
+   ========================================================= */
 
-function createIdName(name) {
+function createIdName(
+  name
+) {
 
   return name
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, "")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    .replace(
+      /[^a-z0-9\s_-]/g,
+      ""
+    )
+    .replace(
+      /\s+/g,
+      "_"
+    )
+    .replace(
+      /_+/g,
+      "_"
+    )
+    .replace(
+      /^_+|_+$/g,
+      ""
+    );
+
 }
 
 
-/* =========================================
+/* =========================================================
    GET NEXT SERVICE NUMBER
-   ========================================= */
+   ========================================================= */
 
 async function getNextServiceNumber() {
 
-  const servicesRef = collection(
-    db,
-    SERVICES_COLLECTION
-  );
+  const servicesRef =
+    collection(
+      db,
+      SERVICES_COLLECTION
+    );
 
 
-  const snapshot = await getDocs(
-    servicesRef
-  );
+  const snapshot =
+    await getDocs(
+      servicesRef
+    );
 
 
   let highestNumber = 0;
@@ -92,22 +124,10 @@ async function getNextServiceNumber() {
         document.id;
 
 
-      /*
-       * Examples:
-       *
-       * registrar_001
-       * accounting_002
-       * guidance_003
-       *
-       * Extract:
-       *
-       * 001
-       * 002
-       * 003
-       */
-
       const match =
-        serviceId.match(/_(\d+)$/);
+        serviceId.match(
+          /_(\d+)$/
+        );
 
 
       if (match) {
@@ -120,32 +140,38 @@ async function getNextServiceNumber() {
 
 
         if (
-          number > highestNumber
+          number >
+          highestNumber
         ) {
 
           highestNumber =
             number;
 
         }
+
       }
+
     }
   );
 
 
   return highestNumber + 1;
+
 }
 
 
-/* =========================================
+/* =========================================================
    GENERATE SERVICE ID
-   ========================================= */
+   ========================================================= */
 
 async function generateServiceId(
   name
 ) {
 
   const idName =
-    createIdName(name);
+    createIdName(
+      name
+    );
 
 
   if (!idName) {
@@ -162,19 +188,24 @@ async function generateServiceId(
 
 
   const formattedNumber =
-    String(nextNumber).padStart(
+    String(
+      nextNumber
+    ).padStart(
       3,
       "0"
     );
 
 
-  return `${idName}_${formattedNumber}`;
+  return (
+    `${idName}_${formattedNumber}`
+  );
+
 }
 
 
-/* =========================================
+/* =========================================================
    ADD NEW SERVICE
-   ========================================= */
+   ========================================================= */
 
 export async function addService(
   name,
@@ -197,57 +228,79 @@ export async function addService(
   }
 
 
-  /*
-   * Generate ID automatically.
-   *
-   * Example:
-   *
-   * Registrar
-   * -> registrar_001
-   *
-   * Accounting
-   * -> accounting_002
-   */
-
   const serviceId =
     await generateServiceId(
       cleanName
     );
 
 
-  const serviceRef = doc(
-    db,
-    SERVICES_COLLECTION,
-    serviceId
-  );
+  const serviceRef =
+    doc(
+      db,
+      SERVICES_COLLECTION,
+      serviceId
+    );
+
+
+  const currentTime =
+    Date.now();
 
 
   await setDoc(
     serviceRef,
     {
-      name: cleanName,
+
+      name:
+        cleanName,
 
       description:
         cleanDescription,
 
-      isActive: true,
+      isActive:
+        true,
 
       createdAt:
-        Date.now(),
+        currentTime,
 
       updatedAt:
-        Date.now()
+        currentTime
+
     }
   );
 
 
+  /* =======================================================
+     ACTIVITY LOG
+     ======================================================= */
+
+  await addActivityLog({
+
+    type:
+      "service",
+
+    action:
+      "added",
+
+    title:
+      cleanName,
+
+    description:
+      "New service added",
+
+    recordId:
+      serviceId
+
+  });
+
+
   return serviceId;
+
 }
 
 
-/* =========================================
+/* =========================================================
    UPDATE EXISTING SERVICE
-   ========================================= */
+   ========================================================= */
 
 export async function updateService(
   serviceId,
@@ -280,36 +333,18 @@ export async function updateService(
   }
 
 
-  /*
-   * IMPORTANT:
-   *
-   * We DO NOT generate a new ID here.
-   *
-   * Example:
-   *
-   * Original:
-   * registrar_001
-   *
-   * Admin changes name:
-   * Registrar Office
-   *
-   * ID remains:
-   * registrar_001
-   *
-   * This protects relationships with
-   * transactions and other records.
-   */
-
-  const serviceRef = doc(
-    db,
-    SERVICES_COLLECTION,
-    serviceId
-  );
+  const serviceRef =
+    doc(
+      db,
+      SERVICES_COLLECTION,
+      serviceId
+    );
 
 
   await updateDoc(
     serviceRef,
     {
+
       name:
         cleanName,
 
@@ -318,14 +353,40 @@ export async function updateService(
 
       updatedAt:
         Date.now()
+
     }
   );
+
+
+  /* =======================================================
+     ACTIVITY LOG
+     ======================================================= */
+
+  await addActivityLog({
+
+    type:
+      "service",
+
+    action:
+      "updated",
+
+    title:
+      cleanName,
+
+    description:
+      "Service information updated",
+
+    recordId:
+      serviceId
+
+  });
+
 }
 
 
-/* =========================================
+/* =========================================================
    ACTIVATE / DEACTIVATE SERVICE
-   ========================================= */
+   ========================================================= */
 
 export async function setServiceActiveStatus(
   serviceId,
@@ -341,29 +402,82 @@ export async function setServiceActiveStatus(
   }
 
 
-  const serviceRef = doc(
-    db,
-    SERVICES_COLLECTION,
-    serviceId
-  );
+  const serviceRef =
+    doc(
+      db,
+      SERVICES_COLLECTION,
+      serviceId
+    );
+
+
+  /*
+   * Get the service first so we can save
+   * its actual name in the activity log.
+   */
+
+  const services =
+    await getAllServices();
+
+
+  const service =
+    services.find(
+      (item) =>
+        item.id === serviceId
+    );
+
+
+  const serviceName =
+    service?.name ||
+    "Service";
 
 
   await updateDoc(
     serviceRef,
     {
+
       isActive:
         isActive,
 
       updatedAt:
         Date.now()
+
     }
   );
+
+
+  /* =======================================================
+     ACTIVITY LOG
+     ======================================================= */
+
+  await addActivityLog({
+
+    type:
+      "service",
+
+    action:
+      isActive
+        ? "activated"
+        : "deactivated",
+
+    title:
+      serviceName,
+
+    description:
+      isActive
+        ? "Service activated"
+        : "Service deactivated",
+
+    recordId:
+      serviceId
+
+  });
+
 }
 
 
-/* =========================================
+/* =========================================================
    DELETE SERVICE
-   ========================================= */
+   ========================================================= */
 
 export async function deleteService(
   serviceId
@@ -378,14 +492,62 @@ export async function deleteService(
   }
 
 
-  const serviceRef = doc(
-    db,
-    SERVICES_COLLECTION,
-    serviceId
-  );
+  /*
+   * Get the service before deleting it.
+   * After deletion, we would no longer
+   * be able to retrieve its name.
+   */
+
+  const services =
+    await getAllServices();
+
+
+  const service =
+    services.find(
+      (item) =>
+        item.id === serviceId
+    );
+
+
+  const serviceName =
+    service?.name ||
+    "Service";
+
+
+  const serviceRef =
+    doc(
+      db,
+      SERVICES_COLLECTION,
+      serviceId
+    );
 
 
   await deleteDoc(
     serviceRef
   );
+
+
+  /* =======================================================
+     ACTIVITY LOG
+     ======================================================= */
+
+  await addActivityLog({
+
+    type:
+      "service",
+
+    action:
+      "deleted",
+
+    title:
+      serviceName,
+
+    description:
+      "Service deleted",
+
+    recordId:
+      serviceId
+
+  });
+
 }

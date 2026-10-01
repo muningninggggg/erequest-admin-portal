@@ -9,7 +9,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
-
+import { addActivityLog } from "../../dashboard/services/activityLogService";
 
 const ANNOUNCEMENTS_COLLECTION = "announcements";
 
@@ -19,7 +19,6 @@ const ANNOUNCEMENTS_COLLECTION = "announcements";
    ========================================================= */
 
 export const getAllAnnouncements = async () => {
-
   const snapshot = await getDocs(
     collection(db, ANNOUNCEMENTS_COLLECTION)
   );
@@ -33,7 +32,6 @@ export const getAllAnnouncements = async () => {
 
 /* =========================================================
    ADD ANNOUNCEMENT
-   Firestore automatically creates the document ID.
    ========================================================= */
 
 export const addAnnouncement = async (
@@ -41,46 +39,49 @@ export const addAnnouncement = async (
   message,
   displayOrder
 ) => {
-
   const cleanTitle = title.trim();
   const cleanMessage = message.trim();
+  const order = Number(displayOrder);
 
   if (!cleanTitle) {
-    throw new Error("Announcement title is required.");
+    throw new Error(
+      "Announcement title is required."
+    );
   }
 
   if (!cleanMessage) {
-    throw new Error("Announcement message is required.");
+    throw new Error(
+      "Announcement message is required."
+    );
   }
-
-  const order = Number(displayOrder);
 
   if (Number.isNaN(order)) {
-    throw new Error("Display order must be a number.");
+    throw new Error(
+      "Display order must be a number."
+    );
   }
-
-
-  const announcementData = {
-
-    title: cleanTitle,
-
-    message: cleanMessage,
-
-    displayOrder: order,
-
-    isActive: true,
-
-    datePosted: serverTimestamp(),
-
-    updatedAt: serverTimestamp()
-  };
-
 
   const documentReference = await addDoc(
     collection(db, ANNOUNCEMENTS_COLLECTION),
-    announcementData
+    {
+      title: cleanTitle,
+      message: cleanMessage,
+      displayOrder: order,
+      isActive: true,
+      datePosted: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }
   );
 
+  /* ACTIVITY LOG */
+
+  await addActivityLog({
+    type: "announcement",
+    action: "added",
+    title: cleanTitle,
+    description: "New announcement added",
+    recordId: documentReference.id
+  });
 
   return documentReference.id;
 };
@@ -96,35 +97,33 @@ export const updateAnnouncement = async (
   message,
   displayOrder
 ) => {
-
   if (!announcementId) {
     throw new Error(
       "Unable to update announcement: missing document ID."
     );
   }
 
-
   const cleanTitle = title.trim();
   const cleanMessage = message.trim();
-
-
-  if (!cleanTitle) {
-    throw new Error("Announcement title is required.");
-  }
-
-
-  if (!cleanMessage) {
-    throw new Error("Announcement message is required.");
-  }
-
-
   const order = Number(displayOrder);
 
-
-  if (Number.isNaN(order)) {
-    throw new Error("Display order must be a number.");
+  if (!cleanTitle) {
+    throw new Error(
+      "Announcement title is required."
+    );
   }
 
+  if (!cleanMessage) {
+    throw new Error(
+      "Announcement message is required."
+    );
+  }
+
+  if (Number.isNaN(order)) {
+    throw new Error(
+      "Display order must be a number."
+    );
+  }
 
   const announcementRef = doc(
     db,
@@ -132,16 +131,21 @@ export const updateAnnouncement = async (
     announcementId
   );
 
-
   await updateDoc(announcementRef, {
-
     title: cleanTitle,
-
     message: cleanMessage,
-
     displayOrder: order,
-
     updatedAt: serverTimestamp()
+  });
+
+  /* ACTIVITY LOG */
+
+  await addActivityLog({
+    type: "announcement",
+    action: "updated",
+    title: cleanTitle,
+    description: "Announcement information updated",
+    recordId: announcementId
   });
 };
 
@@ -154,13 +158,27 @@ export const setAnnouncementActiveStatus = async (
   announcementId,
   isActive
 ) => {
-
   if (!announcementId) {
     throw new Error(
       "Unable to change announcement status: missing document ID."
     );
   }
 
+  /*
+   * Get announcement information first
+   * so we know its title for Recent Updates.
+   */
+
+  const announcements =
+    await getAllAnnouncements();
+
+  const announcement =
+    announcements.find(
+      (item) => item.id === announcementId
+    );
+
+  const announcementTitle =
+    announcement?.title || "Announcement";
 
   const announcementRef = doc(
     db,
@@ -168,31 +186,59 @@ export const setAnnouncementActiveStatus = async (
     announcementId
   );
 
-
   await updateDoc(announcementRef, {
-
     isActive: Boolean(isActive),
-
     updatedAt: serverTimestamp()
+  });
+
+  /* ACTIVITY LOG */
+
+  await addActivityLog({
+    type: "announcement",
+
+    action: isActive
+      ? "activated"
+      : "deactivated",
+
+    title: announcementTitle,
+
+    description: isActive
+      ? "Announcement activated"
+      : "Announcement deactivated",
+
+    recordId: announcementId
   });
 };
 
 
 /* =========================================================
    DELETE ANNOUNCEMENT
-   Permanently removes the announcement from Firestore.
    ========================================================= */
 
 export const deleteAnnouncement = async (
   announcementId
 ) => {
-
   if (!announcementId) {
     throw new Error(
       "Unable to delete announcement: missing document ID."
     );
   }
 
+  /*
+   * Get announcement BEFORE deletion.
+   * After deletion, we can no longer retrieve its title.
+   */
+
+  const announcements =
+    await getAllAnnouncements();
+
+  const announcement =
+    announcements.find(
+      (item) => item.id === announcementId
+    );
+
+  const announcementTitle =
+    announcement?.title || "Announcement";
 
   const announcementRef = doc(
     db,
@@ -200,8 +246,15 @@ export const deleteAnnouncement = async (
     announcementId
   );
 
+  await deleteDoc(announcementRef);
 
-  await deleteDoc(
-    announcementRef
-  );
+  /* ACTIVITY LOG */
+
+  await addActivityLog({
+    type: "announcement",
+    action: "deleted",
+    title: announcementTitle,
+    description: "Announcement deleted",
+    recordId: announcementId
+  });
 };

@@ -5,20 +5,38 @@ import {
   Routes
 } from "react-router-dom";
 
-import LoginPage from "./features/auth/pages/LoginPage";
-import DashboardPage from "./features/dashboard/pages/DashboardPage";
-import ServicesPage from "./features/services/pages/ServicesPage";
+import LoginPage
+  from "./features/auth/pages/LoginPage";
 
-import TransactionsPage from "./features/transactions/pages/TransactionsPage";
-import AddTransactionPage from "./features/transactions/pages/AddTransactionPage";
-import EditTransactionPage from "./features/transactions/pages/EditTransactionPage";
-import ManageTransactionPage from "./features/transactions/pages/ManageTransactionPage";
+import DashboardPage
+  from "./features/dashboard/pages/DashboardPage";
 
-import AnnouncementsPage from "./features/announcements/pages/AnnouncementsPage";
+import ServicesPage
+  from "./features/services/pages/ServicesPage";
 
-import RequirementsPage from "./features/requirements/pages/RequirementsPage";
+import TransactionsPage
+  from "./features/transactions/pages/TransactionsPage";
 
-import ProtectedRoute from "./features/auth/components/ProtectedRoute";
+import AddTransactionPage
+  from "./features/transactions/pages/AddTransactionPage";
+
+import EditTransactionPage
+  from "./features/transactions/pages/EditTransactionPage";
+
+import ManageTransactionPage
+  from "./features/transactions/pages/ManageTransactionPage";
+
+import AnnouncementsPage
+  from "./features/announcements/pages/AnnouncementsPage";
+
+import RequirementsPage
+  from "./features/requirements/pages/RequirementsPage";
+
+import ProtectedRoute
+  from "./features/auth/components/ProtectedRoute";
+
+import AdminLayout
+  from "./layouts/AdminLayout";
 
 
 function App() {
@@ -61,70 +79,74 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
 
-
-          {/* DASHBOARD */}
-
-          <Route
-            path="/dashboard"
-            element={<DashboardPage />}
-          />
+          <Route element={<AdminLayout />}>
 
 
-          {/* SERVICES */}
+            {/* DASHBOARD */}
 
-          <Route
-            path="/services"
-            element={<ServicesPage />}
-          />
-
-
-          {/* TRANSACTIONS LIST */}
-
-          <Route
-            path="/transactions"
-            element={<TransactionsPage />}
-          />
+            <Route
+              path="/dashboard"
+              element={<DashboardPage />}
+            />
 
 
-          {/* ADD TRANSACTION */}
+            {/* SERVICES */}
 
-          <Route
-            path="/transactions/add"
-            element={<AddTransactionPage />}
-          />
-
-
-          {/* EDIT TRANSACTION */}
-
-          <Route
-            path="/transactions/edit/:transactionId"
-            element={<EditTransactionPage />}
-          />
+            <Route
+              path="/services"
+              element={<ServicesPage />}
+            />
 
 
-          {/* MANAGE TRANSACTION */}
+            {/* TRANSACTIONS */}
 
-          <Route
-            path="/transactions/manage/:transactionId"
-            element={<ManageTransactionPage />}
-          />
-
-
-          {/* REQUIREMENTS */}
-
-          <Route
-            path="/requirements"
-            element={<RequirementsPage />}
-          />
+            <Route
+              path="/transactions"
+              element={<TransactionsPage />}
+            />
 
 
-          {/* ANNOUNCEMENTS */}
+            {/* ADD TRANSACTION */}
 
-          <Route
-            path="/announcements"
-            element={<AnnouncementsPage />}
-          />
+            <Route
+              path="/transactions/add"
+              element={<AddTransactionPage />}
+            />
 
+
+            {/* EDIT TRANSACTION */}
+
+            <Route
+              path="/transactions/edit/:transactionId"
+              element={<EditTransactionPage />}
+            />
+
+
+            {/* MANAGE TRANSACTION */}
+
+            <Route
+              path="/transactions/manage/:transactionId"
+              element={<ManageTransactionPage />}
+            />
+
+
+            {/* REQUIREMENTS */}
+
+            <Route
+              path="/requirements"
+              element={<RequirementsPage />}
+            />
+
+
+            {/* ANNOUNCEMENTS */}
+
+            <Route
+              path="/announcements"
+              element={<AnnouncementsPage />}
+            />
+
+
+          </Route>
 
         </Route>
 
