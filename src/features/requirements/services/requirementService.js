@@ -3,7 +3,8 @@ import {
   doc,
   getDocs,
   setDoc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -495,5 +496,35 @@ export async function setRequirementActiveStatus(
         Date.now()
 
     }
+  );
+}
+
+
+/* =========================================
+   DELETE REQUIREMENT
+   ========================================= */
+
+export async function deleteRequirement(
+  requirementId
+) {
+
+  if (!requirementId) {
+
+    throw new Error(
+      "Requirement ID is required."
+    );
+
+  }
+
+
+  const requirementRef = doc(
+    db,
+    REQUIREMENTS_COLLECTION,
+    requirementId
+  );
+
+
+  await deleteDoc(
+    requirementRef
   );
 }

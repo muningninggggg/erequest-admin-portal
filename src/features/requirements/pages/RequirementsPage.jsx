@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 
+
 import {
   getAllRequirements,
   getActiveTransactions,
   addRequirement,
   updateRequirement,
-  setRequirementActiveStatus
+  setRequirementActiveStatus,
+  deleteRequirement
 } from "../services/requirementService";
+
 
 import "../components/RequirementsPage.css";
 
@@ -24,6 +27,9 @@ function RequirementsPage() {
 
   const [saving, setSaving] =
     useState(false);
+
+  const [deletingId, setDeletingId] =
+    useState(null);
 
   const [errorMessage, setErrorMessage] =
     useState("");
@@ -371,6 +377,88 @@ function RequirementsPage() {
 
 
   /* =========================================
+     DELETE REQUIREMENT
+     ========================================= */
+
+  const handleDelete = async (
+    requirement
+  ) => {
+
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete "${requirement.requirementText}"?\n\nThis action cannot be undone.`
+      );
+
+
+    if (!confirmed) {
+
+      return;
+
+    }
+
+
+    try {
+
+      setDeletingId(
+        requirement.id
+      );
+
+      setErrorMessage("");
+      setSuccessMessage("");
+
+
+      await deleteRequirement(
+        requirement.id
+      );
+
+
+      /*
+       * If the requirement being deleted
+       * is currently being edited,
+       * clear the form.
+       */
+
+      if (
+        editingRequirement &&
+        editingRequirement.id === requirement.id
+      ) {
+
+        resetForm();
+
+      }
+
+
+      setSuccessMessage(
+        "Requirement deleted successfully."
+      );
+
+
+      await loadData();
+
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete requirement:",
+        error
+      );
+
+
+      setErrorMessage(
+        error.message ||
+        "Unable to delete requirement."
+      );
+
+
+    } finally {
+
+      setDeletingId(null);
+
+    }
+  };
+
+
+  /* =========================================
      GET TRANSACTION NAME
      ========================================= */
 
@@ -707,16 +795,25 @@ function RequirementsPage() {
 
                     <div className="requirement-item-actions">
 
+
+                      {/* EDIT */}
+
                       <button
                         type="button"
                         className="requirement-edit-button"
                         onClick={() =>
                           handleEdit(requirement)
                         }
+                        disabled={
+                          deletingId ===
+                          requirement.id
+                        }
                       >
                         Edit
                       </button>
 
+
+                      {/* ACTIVATE / DEACTIVATE */}
 
                       <button
                         type="button"
@@ -726,11 +823,39 @@ function RequirementsPage() {
                             requirement
                           )
                         }
+                        disabled={
+                          deletingId ===
+                          requirement.id
+                        }
                       >
 
                         {requirement.isActive
                           ? "Deactivate"
                           : "Activate"}
+
+                      </button>
+
+
+                      {/* DELETE */}
+
+                      <button
+                        type="button"
+                        className="requirement-delete-button"
+                        onClick={() =>
+                          handleDelete(
+                            requirement
+                          )
+                        }
+                        disabled={
+                          deletingId ===
+                          requirement.id
+                        }
+                      >
+
+                        {deletingId ===
+                        requirement.id
+                          ? "Deleting..."
+                          : "Delete"}
 
                       </button>
 
