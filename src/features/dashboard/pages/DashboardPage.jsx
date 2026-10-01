@@ -3,7 +3,9 @@ import {
   useState
 } from "react";
 
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate
+} from "react-router-dom";
 
 import {
   getAllServices
@@ -16,6 +18,9 @@ import {
 import {
   getAllAnnouncements
 } from "../../announcements/services/announcementService";
+
+import AdminSearch
+  from "../../search/components/AdminSearch";
 
 import "../components/DashboardPage.css";
 
@@ -56,10 +61,6 @@ function DashboardPage() {
       setLoading(true);
       setErrorMessage("");
 
-
-      /*
-       * Get the actual records from Firestore.
-       */
 
       const [
         services,
@@ -170,13 +171,16 @@ function DashboardPage() {
     <div className="dashboard-page">
 
 
-      {/* ================================
+      {/* =====================================================
           HEADER
-         ================================ */}
+          ===================================================== */}
 
       <header className="dashboard-header">
 
-        <div>
+
+        {/* LEFT SIDE */}
+
+        <div className="dashboard-header-text">
 
           <h1>
             Dashboard
@@ -188,13 +192,22 @@ function DashboardPage() {
 
         </div>
 
+
+        {/* RIGHT SIDE - GLOBAL SEARCH */}
+
+        <div className="dashboard-header-search">
+
+          <AdminSearch />
+
+        </div>
+
+
       </header>
 
 
-
-      {/* ================================
-          SUMMARY
-         ================================ */}
+      {/* =====================================================
+          SUMMARY CARDS
+          ===================================================== */}
 
       <section className="dashboard-summary">
 
@@ -222,7 +235,6 @@ function DashboardPage() {
         </div>
 
 
-
         {/* TRANSACTIONS */}
 
         <div className="summary-card">
@@ -244,7 +256,6 @@ function DashboardPage() {
           </span>
 
         </div>
-
 
 
         {/* ANNOUNCEMENTS */}
@@ -273,29 +284,24 @@ function DashboardPage() {
       </section>
 
 
-
-      {/* ================================
+      {/* =====================================================
           ERROR MESSAGE
-         ================================ */}
+          ===================================================== */}
 
       {errorMessage && (
 
-        <p
-          style={{
-            textAlign: "center",
-            marginTop: "12px"
-          }}
-        >
+        <p className="dashboard-error-message">
+
           {errorMessage}
+
         </p>
 
       )}
 
 
-
-      {/* ================================
+      {/* =====================================================
           CONTENT MANAGEMENT
-         ================================ */}
+          ===================================================== */}
 
       <section className="dashboard-content">
 
@@ -313,7 +319,6 @@ function DashboardPage() {
           </p>
 
 
-
           <div className="management-grid">
 
 
@@ -329,7 +334,6 @@ function DashboardPage() {
             </button>
 
 
-
             {/* TRANSACTIONS */}
 
             <button
@@ -340,7 +344,6 @@ function DashboardPage() {
             >
               Transactions / Documents
             </button>
-
 
 
             {/* ANNOUNCEMENTS */}
