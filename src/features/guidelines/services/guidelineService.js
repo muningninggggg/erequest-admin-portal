@@ -3,7 +3,8 @@ import {
   doc,
   getDocs,
   setDoc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -415,5 +416,35 @@ export async function setGuidelineActiveStatus(
         Date.now()
 
     }
+  );
+}
+
+
+/* =========================================
+   DELETE GUIDELINE
+   ========================================= */
+
+export async function deleteGuideline(
+  guidelineId
+) {
+
+  if (!guidelineId) {
+
+    throw new Error(
+      "Guideline ID is required."
+    );
+
+  }
+
+
+  const guidelineRef = doc(
+    db,
+    GUIDELINES_COLLECTION,
+    guidelineId
+  );
+
+
+  await deleteDoc(
+    guidelineRef
   );
 }

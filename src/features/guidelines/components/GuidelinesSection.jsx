@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 
+
 import {
   getAllGuidelines,
   addGuideline,
   updateGuideline,
-  setGuidelineActiveStatus
+  setGuidelineActiveStatus,
+  deleteGuideline
 } from "../services/guidelineService";
 
 
@@ -22,6 +24,9 @@ function GuidelinesSection({
   const [saving, setSaving] =
     useState(false);
 
+  const [deletingId, setDeletingId] =
+    useState(null);
+
   const [errorMessage, setErrorMessage] =
     useState("");
 
@@ -37,8 +42,10 @@ function GuidelinesSection({
   const [displayOrder, setDisplayOrder] =
     useState("");
 
-  const [editingGuideline, setEditingGuideline] =
-    useState(null);
+  const [
+    editingGuideline,
+    setEditingGuideline
+  ] = useState(null);
 
 
   /* =========================================
@@ -103,6 +110,7 @@ function GuidelinesSection({
       setLoading(false);
 
     }
+
   };
 
 
@@ -123,7 +131,9 @@ function GuidelinesSection({
     setDisplayOrder("");
 
     setEditingGuideline(null);
+
     setShowForm(false);
+
   };
 
 
@@ -135,9 +145,11 @@ function GuidelinesSection({
 
     setGuidelineText("");
 
+
     setDisplayOrder(
       String(guidelines.length + 1)
     );
+
 
     setEditingGuideline(null);
 
@@ -145,6 +157,7 @@ function GuidelinesSection({
     setSuccessMessage("");
 
     setShowForm(true);
+
   };
 
 
@@ -157,11 +170,8 @@ function GuidelinesSection({
   ) => {
 
     /*
-     * guideline.id remains inside
-     * the guideline object.
-     *
-     * It is used internally when
-     * updating the Firestore document.
+     * guideline.id remains available
+     * internally for Firestore updates.
      */
 
     setGuidelineText(
@@ -170,7 +180,8 @@ function GuidelinesSection({
 
 
     setDisplayOrder(
-      guideline.displayOrder?.toString() || ""
+      guideline.displayOrder?.toString() ||
+        ""
     );
 
 
@@ -183,6 +194,7 @@ function GuidelinesSection({
     setSuccessMessage("");
 
     setShowForm(true);
+
   };
 
 
@@ -200,7 +212,7 @@ function GuidelinesSection({
     setSuccessMessage("");
 
 
-    /* TRANSACTION */
+    /* TRANSACTION VALIDATION */
 
     if (!transactionId) {
 
@@ -209,10 +221,11 @@ function GuidelinesSection({
       );
 
       return;
+
     }
 
 
-    /* GUIDELINE */
+    /* GUIDELINE VALIDATION */
 
     if (
       !guidelineText.trim()
@@ -223,10 +236,11 @@ function GuidelinesSection({
       );
 
       return;
+
     }
 
 
-    /* DISPLAY ORDER */
+    /* DISPLAY ORDER VALIDATION */
 
     if (
       !displayOrder ||
@@ -238,6 +252,7 @@ function GuidelinesSection({
       );
 
       return;
+
     }
 
 
@@ -247,14 +262,14 @@ function GuidelinesSection({
 
 
       /* =====================================
-         UPDATE
+         UPDATE EXISTING GUIDELINE
          ===================================== */
 
       if (editingGuideline) {
 
         /*
-         * Existing ID stays unchanged.
-         * It is only hidden from the admin.
+         * Existing Guideline ID remains
+         * unchanged when edited.
          */
 
         await updateGuideline(
@@ -271,16 +286,14 @@ function GuidelinesSection({
 
 
       /* =====================================
-         ADD
+         ADD NEW GUIDELINE
          ===================================== */
 
       } else {
 
         /*
          * guidelineService.js automatically
-         * generates the internal ID.
-         *
-         * The ID is not displayed to admin.
+         * generates the internal Guideline ID.
          */
 
         await addGuideline(
@@ -299,6 +312,7 @@ function GuidelinesSection({
 
       resetForm();
 
+
       await loadGuidelines();
 
 
@@ -312,7 +326,7 @@ function GuidelinesSection({
 
       setErrorMessage(
         error.message ||
-        "Unable to save guideline."
+          "Unable to save guideline."
       );
 
 
@@ -321,6 +335,7 @@ function GuidelinesSection({
       setSaving(false);
 
     }
+
   };
 
 
@@ -341,12 +356,6 @@ function GuidelinesSection({
       setErrorMessage("");
       setSuccessMessage("");
 
-
-      /*
-       * guideline.id is still required
-       * internally to identify the
-       * correct Firestore document.
-       */
 
       await setGuidelineActiveStatus(
         guideline.id,
@@ -373,10 +382,101 @@ function GuidelinesSection({
 
 
       setErrorMessage(
-        "Unable to update guideline status."
+        error.message ||
+          "Unable to update guideline status."
       );
 
     }
+
+  };
+
+
+  /* =========================================
+     DELETE GUIDELINE
+     ========================================= */
+
+  const handleDelete = async (
+    guideline
+  ) => {
+
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete this guideline?\n\n"${guideline.guidelineText}"\n\nThis action cannot be undone.`
+      );
+
+
+    if (!confirmed) {
+
+      return;
+
+    }
+
+
+    try {
+
+      setDeletingId(
+        guideline.id
+      );
+
+      setErrorMessage("");
+      setSuccessMessage("");
+
+
+      /*
+       * guideline.id is the Firestore
+       * document ID.
+       */
+
+      await deleteGuideline(
+        guideline.id
+      );
+
+
+      /*
+       * If the deleted guideline is
+       * currently being edited,
+       * close and reset the form.
+       */
+
+      if (
+        editingGuideline &&
+        editingGuideline.id ===
+          guideline.id
+      ) {
+
+        resetForm();
+
+      }
+
+
+      setSuccessMessage(
+        "Guideline deleted successfully."
+      );
+
+
+      await loadGuidelines();
+
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete guideline:",
+        error
+      );
+
+
+      setErrorMessage(
+        error.message ||
+          "Unable to delete guideline."
+      );
+
+
+    } finally {
+
+      setDeletingId(null);
+
+    }
+
   };
 
 
@@ -400,7 +500,9 @@ function GuidelinesSection({
     <section className="transaction-detail-section">
 
 
-      {/* HEADER */}
+      {/* =====================================
+          HEADER
+          ===================================== */}
 
       <div className="transaction-detail-section-header">
 
@@ -428,6 +530,10 @@ function GuidelinesSection({
           type="button"
           className="transaction-primary-button"
           onClick={handleAddGuideline}
+          disabled={
+            saving ||
+            deletingId !== null
+          }
         >
           + Add Guideline
         </button>
@@ -435,7 +541,9 @@ function GuidelinesSection({
       </div>
 
 
-      {/* ERROR */}
+      {/* =====================================
+          ERROR MESSAGE
+          ===================================== */}
 
       {errorMessage && (
 
@@ -446,7 +554,9 @@ function GuidelinesSection({
       )}
 
 
-      {/* SUCCESS */}
+      {/* =====================================
+          SUCCESS MESSAGE
+          ===================================== */}
 
       {successMessage && (
 
@@ -532,7 +642,9 @@ function GuidelinesSection({
           </div>
 
 
-          {/* FORM ACTIONS */}
+          {/* =================================
+              FORM ACTIONS
+              ================================= */}
 
           <div className="transaction-form-actions">
 
@@ -602,15 +714,21 @@ function GuidelinesSection({
               >
 
 
-                {/* CONTENT */}
+                {/* =================================
+                    CONTENT
+                    ================================= */}
 
                 <div className="embedded-item-content">
 
+
+                  {/* DISPLAY ORDER */}
 
                   <div className="embedded-item-order">
                     {guideline.displayOrder}
                   </div>
 
+
+                  {/* GUIDELINE TEXT */}
 
                   <div>
 
@@ -620,11 +738,11 @@ function GuidelinesSection({
 
 
                     {/*
-                      Guideline ID intentionally
-                      hidden from admin interface.
+                      Guideline ID is intentionally
+                      hidden from the admin UI.
 
                       guideline.id remains available
-                      internally.
+                      internally for Firestore actions.
                     */}
 
                   </div>
@@ -632,10 +750,14 @@ function GuidelinesSection({
                 </div>
 
 
-                {/* ACTIONS */}
+                {/* =================================
+                    ACTIONS
+                    ================================= */}
 
                 <div className="embedded-item-actions">
 
+
+                  {/* STATUS */}
 
                   <span
                     className={
@@ -652,6 +774,8 @@ function GuidelinesSection({
                   </span>
 
 
+                  {/* EDIT */}
+
                   <button
                     type="button"
                     className="transaction-edit-button"
@@ -660,10 +784,16 @@ function GuidelinesSection({
                         guideline
                       )
                     }
+                    disabled={
+                      deletingId ===
+                      guideline.id
+                    }
                   >
                     Edit
                   </button>
 
+
+                  {/* ACTIVATE / DEACTIVATE */}
 
                   <button
                     type="button"
@@ -673,11 +803,39 @@ function GuidelinesSection({
                         guideline
                       )
                     }
+                    disabled={
+                      deletingId ===
+                      guideline.id
+                    }
                   >
 
                     {guideline.isActive
                       ? "Deactivate"
                       : "Activate"}
+
+                  </button>
+
+
+                  {/* DELETE */}
+
+                  <button
+                    type="button"
+                    className="transaction-delete-button"
+                    onClick={() =>
+                      handleDelete(
+                        guideline
+                      )
+                    }
+                    disabled={
+                      deletingId ===
+                      guideline.id
+                    }
+                  >
+
+                    {deletingId ===
+                    guideline.id
+                      ? "Deleting..."
+                      : "Delete"}
 
                   </button>
 
@@ -693,7 +851,9 @@ function GuidelinesSection({
       )}
 
     </section>
+
   );
+
 }
 
 
