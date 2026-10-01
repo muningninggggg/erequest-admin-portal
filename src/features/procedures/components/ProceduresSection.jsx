@@ -1,18 +1,23 @@
 import { useEffect, useState } from "react";
 
+
 import {
   getAllProcedureSteps,
   addProcedureStep,
   updateProcedureStep,
   setProcedureStepActiveStatus,
+  deleteProcedureStep
 } from "../services/procedureService";
 
-import { uploadProcedureImage } from "../../../services/cloudinaryService";
+
+import {
+  uploadProcedureImage
+} from "../../../services/cloudinaryService";
 
 
 function ProceduresSection({
   transactionId,
-  transactionName,
+  transactionName
 }) {
 
   const [procedures, setProcedures] =
@@ -23,6 +28,9 @@ function ProceduresSection({
 
   const [saving, setSaving] =
     useState(false);
+
+  const [deletingId, setDeletingId] =
+    useState(null);
 
   const [errorMessage, setErrorMessage] =
     useState("");
@@ -255,40 +263,51 @@ function ProceduresSection({
       ""
     );
 
+
     setInstruction(
       procedure.instruction || ""
     );
+
 
     setImageCaption(
       procedure.imageCaption || ""
     );
 
+
     setRemoteImageUrl(
       procedure.remoteImageUrl || ""
     );
+
 
     setWebsiteName(
       procedure.websiteName || ""
     );
 
+
     setWebsiteUrl(
       procedure.websiteUrl || ""
     );
 
+
     setSelectedImage(null);
+
 
     setImagePreview(
       procedure.remoteImageUrl || ""
     );
 
+
     setRemoveExistingImage(false);
+
 
     setEditingProcedure(
       procedure
     );
 
+
     setErrorMessage("");
     setSuccessMessage("");
+
 
     setShowForm(true);
   };
@@ -365,9 +384,11 @@ function ProceduresSection({
 
     setSelectedImage(file);
 
+
     setImagePreview(
       previewUrl
     );
+
 
     setRemoveExistingImage(false);
   };
@@ -630,6 +651,7 @@ function ProceduresSection({
 
       resetForm();
 
+
       await loadProcedures();
 
 
@@ -711,6 +733,93 @@ function ProceduresSection({
 
 
   /* =========================================
+     DELETE PROCEDURE STEP
+     ========================================= */
+
+  const handleDelete = async (
+    procedure
+  ) => {
+
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete Step ${procedure.stepNumber}?\n\n${procedure.instruction}\n\nThis action cannot be undone.`
+      );
+
+
+    if (!confirmed) {
+
+      return;
+
+    }
+
+
+    try {
+
+      setDeletingId(
+        procedure.id
+      );
+
+      setErrorMessage("");
+      setSuccessMessage("");
+
+
+      /*
+       * Delete the Firestore document
+       * using its internal procedure ID.
+       */
+
+      await deleteProcedureStep(
+        procedure.id
+      );
+
+
+      /*
+       * If the procedure currently being
+       * edited is deleted, close the form.
+       */
+
+      if (
+        editingProcedure &&
+        editingProcedure.id ===
+          procedure.id
+      ) {
+
+        resetForm();
+
+      }
+
+
+      setSuccessMessage(
+        "Procedure step deleted successfully."
+      );
+
+
+      await loadProcedures();
+
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete procedure step:",
+        error
+      );
+
+
+      setErrorMessage(
+        error.message ||
+        "Unable to delete procedure step."
+      );
+
+
+    } finally {
+
+      setDeletingId(null);
+
+    }
+  };
+
+
+  /* =========================================
      NO TRANSACTION
      ========================================= */
 
@@ -758,6 +867,10 @@ function ProceduresSection({
           type="button"
           className="transaction-primary-button"
           onClick={handleAddProcedure}
+          disabled={
+            saving ||
+            deletingId !== null
+          }
         >
           + Add Step
         </button>
@@ -890,7 +1003,7 @@ function ProceduresSection({
                 style={{
                   display: "block",
                   marginTop: "6px",
-                  opacity: 0.7,
+                  opacity: 0.7
                 }}
               >
                 Optional. Images only, maximum 5 MB.
@@ -915,7 +1028,7 @@ function ProceduresSection({
                 <div
                   style={{
                     marginTop: "8px",
-                    maxWidth: "500px",
+                    maxWidth: "500px"
                   }}
                 >
 
@@ -932,7 +1045,7 @@ function ProceduresSection({
                       objectFit: "contain",
                       borderRadius: "10px",
                       border:
-                        "1px solid rgba(255,255,255,0.15)",
+                        "1px solid rgba(255,255,255,0.15)"
                     }}
                   />
 
@@ -945,7 +1058,7 @@ function ProceduresSection({
                     }
                     disabled={saving}
                     style={{
-                      marginTop: "10px",
+                      marginTop: "10px"
                     }}
                   >
                     Remove Image
@@ -1014,7 +1127,7 @@ function ProceduresSection({
                 style={{
                   display: "block",
                   marginTop: "6px",
-                  opacity: 0.7,
+                  opacity: 0.7
                 }}
               >
                 This is the clickable name that students will see.
@@ -1052,7 +1165,7 @@ function ProceduresSection({
                 style={{
                   display: "block",
                   marginTop: "6px",
-                  opacity: 0.7,
+                  opacity: 0.7
                 }}
               >
                 Enter the website that will open when the student taps the link name.
@@ -1205,7 +1318,7 @@ function ProceduresSection({
                       <div
                         style={{
                           marginTop: "12px",
-                          maxWidth: "350px",
+                          maxWidth: "350px"
                         }}
                       >
 
@@ -1225,7 +1338,7 @@ function ProceduresSection({
                             objectFit: "contain",
                             borderRadius: "10px",
                             border:
-                              "1px solid rgba(255,255,255,0.15)",
+                              "1px solid rgba(255,255,255,0.15)"
                           }}
                         />
 
@@ -1236,7 +1349,7 @@ function ProceduresSection({
                             style={{
                               marginTop: "6px",
                               fontSize: "0.9rem",
-                              opacity: 0.8,
+                              opacity: 0.8
                             }}
                           >
                             {procedure.imageCaption}
@@ -1253,9 +1366,14 @@ function ProceduresSection({
                 </div>
 
 
-                {/* ACTIONS */}
+                {/* =================================
+                    ACTIONS
+                    ================================= */}
 
                 <div className="embedded-item-actions">
+
+
+                  {/* STATUS */}
 
                   <span
                     className={
@@ -1272,6 +1390,8 @@ function ProceduresSection({
                   </span>
 
 
+                  {/* EDIT */}
+
                   <button
                     type="button"
                     className="transaction-edit-button"
@@ -1280,10 +1400,16 @@ function ProceduresSection({
                         procedure
                       )
                     }
+                    disabled={
+                      deletingId ===
+                      procedure.id
+                    }
                   >
                     Edit
                   </button>
 
+
+                  {/* ACTIVATE / DEACTIVATE */}
 
                   <button
                     type="button"
@@ -1293,11 +1419,39 @@ function ProceduresSection({
                         procedure
                       )
                     }
+                    disabled={
+                      deletingId ===
+                      procedure.id
+                    }
                   >
 
                     {procedure.isActive
                       ? "Deactivate"
                       : "Activate"}
+
+                  </button>
+
+
+                  {/* DELETE */}
+
+                  <button
+                    type="button"
+                    className="transaction-delete-button"
+                    onClick={() =>
+                      handleDelete(
+                        procedure
+                      )
+                    }
+                    disabled={
+                      deletingId ===
+                      procedure.id
+                    }
+                  >
+
+                    {deletingId ===
+                    procedure.id
+                      ? "Deleting..."
+                      : "Delete"}
 
                   </button>
 
@@ -1313,7 +1467,9 @@ function ProceduresSection({
       )}
 
     </section>
+
   );
+
 }
 
 

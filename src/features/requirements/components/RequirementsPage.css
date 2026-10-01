@@ -6,10 +6,13 @@
   width: 100%;
   min-height: 100vh;
   padding: 32px;
+
   background: #f7f9fc;
   color: #1d2d3e;
+
   font-family: Inter, Arial, Helvetica, sans-serif;
 }
+
 
 .requirements-container {
   width: 100%;
@@ -26,17 +29,23 @@
   margin-bottom: 28px;
 }
 
+
 .requirements-header h1 {
   margin: 0 0 6px;
+
   font-size: 30px;
   font-weight: 700;
+
   color: #1d2d3e;
 }
 
+
 .requirements-header p {
   margin: 0;
+
   font-size: 14px;
   line-height: 1.6;
+
   color: #788696;
 }
 
@@ -47,6 +56,7 @@
 
 .requirements-card {
   width: 100%;
+
   margin-bottom: 24px;
   padding: 28px;
 
@@ -59,6 +69,7 @@
     0 6px 20px
     rgba(28, 48, 74, 0.05);
 }
+
 
 .requirements-card h2 {
   margin: 0 0 22px;
@@ -78,6 +89,7 @@
   width: 100%;
 }
 
+
 .requirement-form-grid {
   display: grid;
 
@@ -87,13 +99,16 @@
   gap: 20px;
 }
 
+
 .requirement-form-group {
   width: 100%;
 }
 
+
 .requirement-form-group.full-width {
   grid-column: 1 / -1;
 }
+
 
 .requirement-form-group label {
   display: block;
@@ -134,10 +149,12 @@
     box-shadow 0.2s ease;
 }
 
+
 .requirement-form-group input,
 .requirement-form-group select {
   height: 48px;
 }
+
 
 .requirement-form-group textarea {
   min-height: 110px;
@@ -192,6 +209,7 @@
   margin-top: 22px;
 }
 
+
 .requirement-primary-button,
 .requirement-secondary-button {
   min-height: 44px;
@@ -222,6 +240,7 @@
   color: #ffffff;
 }
 
+
 .requirement-primary-button:hover:not(:disabled) {
   background: #1d4269;
 }
@@ -235,6 +254,7 @@
   background: #ffffff;
   color: #526579;
 }
+
 
 .requirement-secondary-button:hover:not(:disabled) {
   background: #f4f7fa;
@@ -326,6 +346,7 @@
     box-shadow 0.2s ease;
 }
 
+
 .requirement-item:hover {
   border-color: #d3dce5;
 
@@ -348,6 +369,7 @@
   gap: 20px;
 }
 
+
 .requirement-information {
   flex: 1;
 
@@ -366,19 +388,6 @@
   line-height: 1.4;
 
   color: #1d2d3e;
-}
-
-
-/* REQUIREMENT ID */
-
-.requirement-id {
-  margin: 0 0 10px;
-
-  font-size: 12px;
-
-  color: #8b98a6;
-
-  overflow-wrap: anywhere;
 }
 
 
@@ -416,6 +425,7 @@
 
   color: #667789;
 }
+
 
 .requirement-order strong {
   color: #34495e;
@@ -464,14 +474,17 @@
 
 .requirement-item-actions {
   display: flex;
+  flex-wrap: wrap;
 
   gap: 9px;
 
   margin-top: 18px;
 }
 
+
 .requirement-edit-button,
-.requirement-status-button {
+.requirement-status-button,
+.requirement-delete-button {
   min-height: 38px;
 
   padding: 0 15px;
@@ -486,7 +499,8 @@
 
   transition:
     background 0.2s ease,
-    border-color 0.2s ease;
+    border-color 0.2s ease,
+    transform 0.1s ease;
 }
 
 
@@ -499,7 +513,8 @@
   color: #244f7c;
 }
 
-.requirement-edit-button:hover {
+
+.requirement-edit-button:hover:not(:disabled) {
   background: #f4f8fc;
 }
 
@@ -513,8 +528,45 @@
   color: #526579;
 }
 
-.requirement-status-button:hover {
+
+.requirement-status-button:hover:not(:disabled) {
   background: #f4f6f8;
+}
+
+
+/* =========================================
+   DELETE REQUIREMENT BUTTON
+   ========================================= */
+
+.requirement-delete-button {
+  border: 1px solid #dc3545;
+
+  background: #dc3545;
+  color: #ffffff;
+}
+
+
+.requirement-delete-button:hover:not(:disabled) {
+  background: #b02a37;
+  border-color: #b02a37;
+}
+
+
+.requirement-delete-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+
+/* =========================================
+   DISABLED ACTION BUTTONS
+   ========================================= */
+
+.requirement-edit-button:disabled,
+.requirement-status-button:disabled,
+.requirement-delete-button:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
 }
 
 
@@ -543,9 +595,11 @@
     padding: 26px 20px;
   }
 
+
   .requirement-form-grid {
     grid-template-columns: 1fr;
   }
+
 
   .requirement-form-group.full-width {
     grid-column: auto;
@@ -623,41 +677,11 @@
 
 
   .requirement-edit-button,
-  .requirement-status-button {
+  .requirement-status-button,
+  .requirement-delete-button {
     width: 100%;
 
     min-height: 42px;
   }
 
-}
-
-/* =========================================
-   DELETE REQUIREMENT BUTTON
-   ========================================= */
-
-.requirement-delete-button {
-  background-color: #dc3545;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  padding: 9px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    transform 0.1s ease;
-}
-
-.requirement-delete-button:hover:not(:disabled) {
-  background-color: #b02a37;
-}
-
-.requirement-delete-button:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.requirement-delete-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }

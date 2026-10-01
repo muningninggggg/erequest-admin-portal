@@ -3,7 +3,8 @@ import {
   doc,
   getDocs,
   setDoc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -22,6 +23,7 @@ export async function getAllProcedureSteps() {
     db,
     PROCEDURES_COLLECTION
   );
+
 
   const snapshot = await getDocs(
     proceduresRef
@@ -45,7 +47,9 @@ export async function getAllProcedureSteps() {
 
 
     if (transactionCompare !== 0) {
+
       return transactionCompare;
+
     }
 
 
@@ -58,7 +62,6 @@ export async function getAllProcedureSteps() {
 
 
   return procedures;
-
 }
 
 
@@ -149,12 +152,16 @@ async function getNextProcedureNumber() {
     if (match) {
 
       const number =
-        parseInt(match[1], 10);
+        parseInt(
+          match[1],
+          10
+        );
 
 
       if (number > highestNumber) {
 
-        highestNumber = number;
+        highestNumber =
+          number;
 
       }
 
@@ -164,7 +171,6 @@ async function getNextProcedureNumber() {
 
 
   return highestNumber + 1;
-
 }
 
 
@@ -177,7 +183,9 @@ async function generateProcedureId(
 ) {
 
   const idName =
-    createIdName(instruction);
+    createIdName(
+      instruction
+    );
 
 
   if (!idName) {
@@ -194,14 +202,15 @@ async function generateProcedureId(
 
 
   const formattedNumber =
-    String(nextNumber).padStart(
+    String(
+      nextNumber
+    ).padStart(
       3,
       "0"
     );
 
 
   return `${idName}_${formattedNumber}`;
-
 }
 
 
@@ -231,28 +240,37 @@ export async function addProcedureStep(
   const cleanTransactionId =
     transactionId.trim();
 
+
   const cleanInstruction =
     instruction.trim();
+
 
   const cleanImageCaption =
     imageCaption.trim();
 
+
   const cleanRemoteImageUrl =
     remoteImageUrl.trim();
+
 
   const cleanLocalImagePath =
     localImagePath.trim();
 
+
   const cleanWebsiteName =
     websiteName.trim();
+
 
   const cleanWebsiteUrl =
     cleanWebsiteUrlValue(
       websiteUrl
     );
 
+
   const cleanStepNumber =
-    Number(stepNumber);
+    Number(
+      stepNumber
+    );
 
 
   /* =========================================
@@ -269,7 +287,9 @@ export async function addProcedureStep(
 
 
   if (
-    !Number.isInteger(cleanStepNumber) ||
+    !Number.isInteger(
+      cleanStepNumber
+    ) ||
     cleanStepNumber < 1
   ) {
 
@@ -390,7 +410,6 @@ export async function addProcedureStep(
      ========================================= */
 
   return procedureId;
-
 }
 
 
@@ -429,28 +448,37 @@ export async function updateProcedureStep(
   const cleanTransactionId =
     transactionId.trim();
 
+
   const cleanInstruction =
     instruction.trim();
+
 
   const cleanImageCaption =
     imageCaption.trim();
 
+
   const cleanRemoteImageUrl =
     remoteImageUrl.trim();
+
 
   const cleanLocalImagePath =
     localImagePath.trim();
 
+
   const cleanWebsiteName =
     websiteName.trim();
+
 
   const cleanWebsiteUrl =
     cleanWebsiteUrlValue(
       websiteUrl
     );
 
+
   const cleanStepNumber =
-    Number(stepNumber);
+    Number(
+      stepNumber
+    );
 
 
   /* =========================================
@@ -476,7 +504,9 @@ export async function updateProcedureStep(
 
 
   if (
-    !Number.isInteger(cleanStepNumber) ||
+    !Number.isInteger(
+      cleanStepNumber
+    ) ||
     cleanStepNumber < 1
   ) {
 
@@ -569,7 +599,6 @@ export async function updateProcedureStep(
 
     }
   );
-
 }
 
 
@@ -610,7 +639,36 @@ export async function setProcedureStepActiveStatus(
 
     }
   );
+}
 
+
+/* =========================================
+   DELETE PROCEDURE STEP
+   ========================================= */
+
+export async function deleteProcedureStep(
+  procedureId
+) {
+
+  if (!procedureId) {
+
+    throw new Error(
+      "Procedure ID is required."
+    );
+
+  }
+
+
+  const procedureRef = doc(
+    db,
+    PROCEDURES_COLLECTION,
+    procedureId
+  );
+
+
+  await deleteDoc(
+    procedureRef
+  );
 }
 
 
@@ -655,5 +713,4 @@ function cleanWebsiteUrlValue(
 
 
   return cleanUrl;
-
 }
