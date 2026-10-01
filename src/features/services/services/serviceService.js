@@ -3,7 +3,8 @@ import {
   doc,
   getDocs,
   setDoc,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -356,5 +357,35 @@ export async function setServiceActiveStatus(
       updatedAt:
         Date.now()
     }
+  );
+}
+
+
+/* =========================================
+   DELETE SERVICE
+   ========================================= */
+
+export async function deleteService(
+  serviceId
+) {
+
+  if (!serviceId) {
+
+    throw new Error(
+      "Service ID is required."
+    );
+
+  }
+
+
+  const serviceRef = doc(
+    db,
+    SERVICES_COLLECTION,
+    serviceId
+  );
+
+
+  await deleteDoc(
+    serviceRef
   );
 }

@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
+
 
 import {
   getAllServices,
   addService,
   updateService,
-  setServiceActiveStatus
+  setServiceActiveStatus,
+  deleteService
 } from "../services/serviceService";
+
 
 import "../components/ServicesPage.css";
 
@@ -14,6 +18,7 @@ import "../components/ServicesPage.css";
 function ServicesPage() {
 
   const navigate = useNavigate();
+
 
   const [services, setServices] =
     useState([]);
@@ -51,10 +56,13 @@ function ServicesPage() {
       setLoading(true);
       setErrorMessage("");
 
+
       const data =
         await getAllServices();
 
+
       setServices(data);
+
 
     } catch (error) {
 
@@ -63,9 +71,11 @@ function ServicesPage() {
         error
       );
 
+
       setErrorMessage(
         "Unable to load services. Please try again."
       );
+
 
     } finally {
 
@@ -114,6 +124,7 @@ function ServicesPage() {
   const handleSubmit = async (event) => {
 
     event.preventDefault();
+
 
     setErrorMessage("");
     setSuccessMessage("");
@@ -228,13 +239,16 @@ function ServicesPage() {
 
     setEditingService(service);
 
+
     setName(
       service.name || ""
     );
 
+
     setDescription(
       service.description || ""
     );
+
 
     setErrorMessage("");
     setSuccessMessage("");
@@ -312,6 +326,96 @@ function ServicesPage() {
 
       setErrorMessage(
         "Unable to update service status."
+      );
+
+    }
+  };
+
+
+  /* =========================================================
+     DELETE SERVICE
+     ========================================================= */
+
+  const handleDelete = async (
+    service
+  ) => {
+
+    /*
+     * Ask the admin for confirmation
+     * before permanently deleting
+     * the service.
+     */
+
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete "${service.name}"?\n\nThis action cannot be undone.`
+      );
+
+
+    if (!confirmed) {
+
+      return;
+
+    }
+
+
+    try {
+
+      setErrorMessage("");
+      setSuccessMessage("");
+
+
+      /*
+       * Delete the Firestore document
+       * using its internal service ID.
+       */
+
+      await deleteService(
+        service.id
+      );
+
+
+      /*
+       * If the admin is currently editing
+       * the same service that was deleted,
+       * clear the edit form.
+       */
+
+      if (
+        editingService &&
+        editingService.id === service.id
+      ) {
+
+        resetForm();
+
+      }
+
+
+      setSuccessMessage(
+        "Service deleted successfully."
+      );
+
+
+      /*
+       * Reload the list immediately so
+       * the deleted service disappears
+       * from the page.
+       */
+
+      await loadServices();
+
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete service:",
+        error
+      );
+
+
+      setErrorMessage(
+        error.message ||
+        "Unable to delete service."
       );
 
     }
@@ -594,6 +698,8 @@ function ServicesPage() {
                   <div className="service-item-actions">
 
 
+                    {/* EDIT */}
+
                     <button
                       type="button"
                       className="service-edit-button"
@@ -606,6 +712,8 @@ function ServicesPage() {
 
                     </button>
 
+
+                    {/* ACTIVATE / DEACTIVATE */}
 
                     <button
                       type="button"
@@ -620,6 +728,23 @@ function ServicesPage() {
                       {service.isActive
                         ? "Deactivate"
                         : "Activate"}
+
+                    </button>
+
+
+                    {/* DELETE */}
+
+                    <button
+                      type="button"
+                      className="service-delete-button"
+                      onClick={() =>
+                        handleDelete(
+                          service
+                        )
+                      }
+                    >
+
+                      Delete
 
                     </button>
 
