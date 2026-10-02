@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-
 import { useNavigate } from "react-router-dom";
-
 
 import {
   getAllServices,
@@ -11,38 +9,29 @@ import {
   deleteService
 } from "../services/serviceService";
 
+import DeleteConfirmationModal from "../../../components/DeleteConfirmationModal";
 
 import "../components/ServicesPage.css";
 
 
 function ServicesPage() {
-
   const navigate = useNavigate();
 
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const [services, setServices] =
-    useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
-  const [saving, setSaving] =
-    useState(false);
+  const [editingService, setEditingService] = useState(null);
 
-  const [errorMessage, setErrorMessage] =
-    useState("");
-
-  const [successMessage, setSuccessMessage] =
-    useState("");
-
-  const [name, setName] =
-    useState("");
-
-  const [description, setDescription] =
-    useState("");
-
-  const [editingService, setEditingService] =
-    useState(null);
+  /* DELETE MODAL */
+  const [serviceToDelete, setServiceToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
 
   /* =========================================================
@@ -50,45 +39,32 @@ function ServicesPage() {
      ========================================================= */
 
   const loadServices = async () => {
-
     try {
-
       setLoading(true);
       setErrorMessage("");
 
-
-      const data =
-        await getAllServices();
-
+      const data = await getAllServices();
 
       setServices(data);
 
-
     } catch (error) {
-
       console.error(
         "Failed to load services:",
         error
       );
 
-
       setErrorMessage(
         "Unable to load services. Please try again."
       );
 
-
     } finally {
-
       setLoading(false);
-
     }
   };
 
 
   useEffect(() => {
-
     loadServices();
-
   }, []);
 
 
@@ -97,9 +73,7 @@ function ServicesPage() {
      ========================================================= */
 
   const handleBackToDashboard = () => {
-
     navigate("/dashboard");
-
   };
 
 
@@ -108,12 +82,9 @@ function ServicesPage() {
      ========================================================= */
 
   const resetForm = () => {
-
     setName("");
     setDescription("");
-
     setEditingService(null);
-
   };
 
 
@@ -122,16 +93,12 @@ function ServicesPage() {
      ========================================================= */
 
   const handleSubmit = async (event) => {
-
     event.preventDefault();
-
 
     setErrorMessage("");
     setSuccessMessage("");
 
-
     if (!name.trim()) {
-
       setErrorMessage(
         "Service name is required."
       );
@@ -139,87 +106,53 @@ function ServicesPage() {
       return;
     }
 
-
     try {
-
       setSaving(true);
 
-
-      /* =====================================
-         UPDATE EXISTING SERVICE
-         ===================================== */
+      /* UPDATE EXISTING SERVICE */
 
       if (editingService) {
-
-        /*
-         * Existing service ID is retained
-         * internally.
-         *
-         * Changing the service name will
-         * NOT change its Firestore ID.
-         */
-
         await updateService(
           editingService.id,
           name,
           description
         );
 
-
         setSuccessMessage(
           "Service updated successfully."
         );
 
-
-      /* =====================================
-         ADD NEW SERVICE
-         ===================================== */
-
       } else {
 
-        /*
-         * No Service ID is entered by admin.
-         *
-         * serviceService.js automatically
-         * generates the internal ID.
-         */
+        /* ADD NEW SERVICE */
 
         await addService(
           name,
           description
         );
 
-
         setSuccessMessage(
           "Service added successfully."
         );
-
       }
-
 
       resetForm();
 
       await loadServices();
 
-
     } catch (error) {
-
       console.error(
         "Failed to save service:",
         error
       );
-
 
       setErrorMessage(
         error.message ||
         "Unable to save service."
       );
 
-
     } finally {
-
       setSaving(false);
-
     }
   };
 
@@ -229,36 +162,23 @@ function ServicesPage() {
      ========================================================= */
 
   const handleEdit = (service) => {
-
-    /*
-     * service.id stays inside editingService
-     * and is used internally when saving.
-     *
-     * It is not shown or editable by admin.
-     */
-
     setEditingService(service);
-
 
     setName(
       service.name || ""
     );
 
-
     setDescription(
       service.description || ""
     );
 
-
     setErrorMessage("");
     setSuccessMessage("");
-
 
     window.scrollTo({
       top: 0,
       behavior: "smooth"
     });
-
   };
 
 
@@ -267,12 +187,10 @@ function ServicesPage() {
      ========================================================= */
 
   const handleCancelEdit = () => {
-
     resetForm();
 
     setErrorMessage("");
     setSuccessMessage("");
-
   };
 
 
@@ -280,31 +198,17 @@ function ServicesPage() {
      ACTIVATE / DEACTIVATE
      ========================================================= */
 
-  const handleStatusChange = async (
-    service
-  ) => {
-
-    const newStatus =
-      !service.isActive;
-
+  const handleStatusChange = async (service) => {
+    const newStatus = !service.isActive;
 
     try {
-
       setErrorMessage("");
       setSuccessMessage("");
-
-
-      /*
-       * service.id is still required
-       * internally to identify the
-       * Firestore document.
-       */
 
       await setServiceActiveStatus(
         service.id,
         newStatus
       );
-
 
       setSuccessMessage(
         newStatus
@@ -312,112 +216,99 @@ function ServicesPage() {
           : "Service deactivated successfully."
       );
 
-
       await loadServices();
 
-
     } catch (error) {
-
       console.error(
         "Failed to update service status:",
         error
       );
 
-
       setErrorMessage(
+        error.message ||
         "Unable to update service status."
       );
-
     }
   };
 
 
   /* =========================================================
-     DELETE SERVICE
+     OPEN DELETE CONFIRMATION
      ========================================================= */
 
-  const handleDelete = async (
-    service
-  ) => {
+  const handleDelete = (service) => {
+    setServiceToDelete(service);
 
-    /*
-     * Ask the admin for confirmation
-     * before permanently deleting
-     * the service.
-     */
-
-    const confirmed =
-      window.confirm(
-        `Are you sure you want to delete "${service.name}"?\n\nThis action cannot be undone.`
-      );
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
 
 
-    if (!confirmed) {
+  /* =========================================================
+     CANCEL DELETE
+     ========================================================= */
 
+  const handleCancelDelete = () => {
+    if (deleting) {
       return;
-
     }
 
+    setServiceToDelete(null);
+  };
+
+
+  /* =========================================================
+     CONFIRM PERMANENT DELETE
+     ========================================================= */
+
+  const handleConfirmDelete = async () => {
+    if (!serviceToDelete) {
+      return;
+    }
 
     try {
+      setDeleting(true);
 
       setErrorMessage("");
       setSuccessMessage("");
 
-
-      /*
-       * Delete the Firestore document
-       * using its internal service ID.
-       */
-
       await deleteService(
-        service.id
+        serviceToDelete.id
       );
 
-
       /*
-       * If the admin is currently editing
-       * the same service that was deleted,
-       * clear the edit form.
+       * If the deleted service is currently
+       * being edited, clear the edit form.
        */
 
       if (
         editingService &&
-        editingService.id === service.id
+        editingService.id === serviceToDelete.id
       ) {
-
         resetForm();
-
       }
-
 
       setSuccessMessage(
         "Service deleted successfully."
       );
 
-
-      /*
-       * Reload the list immediately so
-       * the deleted service disappears
-       * from the page.
-       */
+      setServiceToDelete(null);
 
       await loadServices();
 
-
     } catch (error) {
-
       console.error(
         "Failed to delete service:",
         error
       );
-
 
       setErrorMessage(
         error.message ||
         "Unable to delete service."
       );
 
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -427,11 +318,9 @@ function ServicesPage() {
      ========================================================= */
 
   return (
-
     <div className="services-page">
 
       <div className="services-container">
-
 
         {/* ===================================================
             BACK TO DASHBOARD
@@ -454,13 +343,11 @@ function ServicesPage() {
             gap: "6px"
           }}
         >
-
           <span aria-hidden="true">
             ←
           </span>
 
           Back to Dashboard
-
         </button>
 
 
@@ -488,11 +375,9 @@ function ServicesPage() {
         <section className="services-card">
 
           <h2>
-
             {editingService
               ? "Edit Service"
               : "Add Service"}
-
           </h2>
 
 
@@ -502,7 +387,6 @@ function ServicesPage() {
           >
 
             <div className="service-form-grid">
-
 
               {/* SERVICE NAME */}
 
@@ -518,9 +402,7 @@ function ServicesPage() {
                   placeholder="Example: Registrar"
                   value={name}
                   onChange={(event) =>
-                    setName(
-                      event.target.value
-                    )
+                    setName(event.target.value)
                   }
                   disabled={saving}
                 />
@@ -563,13 +445,11 @@ function ServicesPage() {
                 className="service-primary-button"
                 disabled={saving}
               >
-
                 {saving
                   ? "Saving..."
                   : editingService
                     ? "Save Changes"
                     : "Add Service"}
-
               </button>
 
 
@@ -581,9 +461,7 @@ function ServicesPage() {
                   onClick={handleCancelEdit}
                   disabled={saving}
                 >
-
                   Cancel
-
                 </button>
 
               )}
@@ -593,25 +471,21 @@ function ServicesPage() {
           </form>
 
 
-          {/* ERROR */}
+          {/* ERROR MESSAGE */}
 
           {errorMessage && (
-
             <div className="service-error">
               {errorMessage}
             </div>
-
           )}
 
 
-          {/* SUCCESS */}
+          {/* SUCCESS MESSAGE */}
 
           {successMessage && (
-
             <div className="service-success">
               {successMessage}
             </div>
-
           )}
 
         </section>
@@ -644,14 +518,12 @@ function ServicesPage() {
 
             <div className="services-list">
 
-
               {services.map((service) => (
 
                 <article
                   key={service.id}
                   className="service-item"
                 >
-
 
                   {/* SERVICE INFORMATION */}
 
@@ -663,12 +535,9 @@ function ServicesPage() {
                         {service.name}
                       </h3>
 
-
                       <p className="service-description">
-
                         {service.description ||
                           "No description"}
-
                       </p>
 
                     </div>
@@ -683,11 +552,9 @@ function ServicesPage() {
                           : "service-status inactive"
                       }
                     >
-
                       {service.isActive
                         ? "Active"
                         : "Inactive"}
-
                     </span>
 
                   </div>
@@ -696,7 +563,6 @@ function ServicesPage() {
                   {/* ACTION BUTTONS */}
 
                   <div className="service-item-actions">
-
 
                     {/* EDIT */}
 
@@ -707,9 +573,7 @@ function ServicesPage() {
                         handleEdit(service)
                       }
                     >
-
                       Edit
-
                     </button>
 
 
@@ -724,11 +588,9 @@ function ServicesPage() {
                         )
                       }
                     >
-
                       {service.isActive
                         ? "Deactivate"
                         : "Activate"}
-
                     </button>
 
 
@@ -738,14 +600,10 @@ function ServicesPage() {
                       type="button"
                       className="service-delete-button"
                       onClick={() =>
-                        handleDelete(
-                          service
-                        )
+                        handleDelete(service)
                       }
                     >
-
                       Delete
-
                     </button>
 
                   </div>
@@ -761,6 +619,20 @@ function ServicesPage() {
         </section>
 
       </div>
+
+
+      {/* =====================================================
+          DELETE CONFIRMATION MODAL
+          ===================================================== */}
+
+      <DeleteConfirmationModal
+        isOpen={serviceToDelete !== null}
+        itemType="Service"
+        itemName={serviceToDelete?.name || ""}
+        deleting={deleting}
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
 
     </div>
   );

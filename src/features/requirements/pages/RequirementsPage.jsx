@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-
 import {
   getAllRequirements,
   getActiveTransactions,
@@ -10,41 +9,28 @@ import {
   deleteRequirement
 } from "../services/requirementService";
 
+import DeleteConfirmationModal from "../../../components/DeleteConfirmationModal";
 
 import "../components/RequirementsPage.css";
 
 
 function RequirementsPage() {
+  const [requirements, setRequirements] = useState([]);
+  const [transactions, setTransactions] = useState([]);
 
-  const [requirements, setRequirements] =
-    useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
-  const [transactions, setTransactions] =
-    useState([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [deletingId, setDeletingId] =
+  const [requirementToDelete, setRequirementToDelete] =
     useState(null);
 
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const [successMessage, setSuccessMessage] =
-    useState("");
-
-  const [transactionId, setTransactionId] =
-    useState("");
-
-  const [requirementText, setRequirementText] =
-    useState("");
-
-  const [displayOrder, setDisplayOrder] =
-    useState("");
+  const [transactionId, setTransactionId] = useState("");
+  const [requirementText, setRequirementText] = useState("");
+  const [displayOrder, setDisplayOrder] = useState("");
 
   const [editingRequirement, setEditingRequirement] =
     useState(null);
@@ -55,12 +41,9 @@ function RequirementsPage() {
      ========================================= */
 
   const loadData = async () => {
-
     try {
-
       setLoading(true);
       setErrorMessage("");
-
 
       const [
         requirementData,
@@ -70,41 +53,27 @@ function RequirementsPage() {
         getActiveTransactions()
       ]);
 
-
-      setRequirements(
-        requirementData
-      );
-
-      setTransactions(
-        transactionData
-      );
-
+      setRequirements(requirementData);
+      setTransactions(transactionData);
 
     } catch (error) {
-
       console.error(
         "Failed to load requirements:",
         error
       );
 
-
       setErrorMessage(
         "Unable to load requirements."
       );
 
-
     } finally {
-
       setLoading(false);
-
     }
   };
 
 
   useEffect(() => {
-
     loadData();
-
   }, []);
 
 
@@ -113,11 +82,9 @@ function RequirementsPage() {
      ========================================= */
 
   const resetForm = () => {
-
     setTransactionId("");
     setRequirementText("");
     setDisplayOrder("");
-
     setEditingRequirement(null);
   };
 
@@ -127,17 +94,12 @@ function RequirementsPage() {
      ========================================= */
 
   const handleSubmit = async (event) => {
-
     event.preventDefault();
 
     setErrorMessage("");
     setSuccessMessage("");
 
-
-    /* TRANSACTION VALIDATION */
-
     if (!transactionId) {
-
       setErrorMessage(
         "Please select a transaction."
       );
@@ -145,11 +107,7 @@ function RequirementsPage() {
       return;
     }
 
-
-    /* REQUIREMENT VALIDATION */
-
     if (!requirementText.trim()) {
-
       setErrorMessage(
         "Requirement is required."
       );
@@ -157,14 +115,10 @@ function RequirementsPage() {
       return;
     }
 
-
-    /* DISPLAY ORDER VALIDATION */
-
     if (
       !displayOrder ||
       Number(displayOrder) < 1
     ) {
-
       setErrorMessage(
         "Display order must be greater than 0."
       );
@@ -172,25 +126,10 @@ function RequirementsPage() {
       return;
     }
 
-
     try {
-
       setSaving(true);
 
-
-      /* =====================================
-         EDIT EXISTING REQUIREMENT
-         ===================================== */
-
       if (editingRequirement) {
-
-        /*
-         * requirement.id is still used
-         * internally for Firestore updates.
-         *
-         * It is simply hidden from the admin UI.
-         */
-
         await updateRequirement(
           editingRequirement.id,
           transactionId,
@@ -198,67 +137,39 @@ function RequirementsPage() {
           displayOrder
         );
 
-
         setSuccessMessage(
           "Requirement updated successfully."
         );
 
-
-      /* =====================================
-         ADD NEW REQUIREMENT
-         ===================================== */
-
       } else {
-
-        /*
-         * Requirement ID is automatically
-         * generated inside requirementService.js.
-         *
-         * Admin does not need to enter or see it.
-         */
-
         await addRequirement(
           transactionId,
           requirementText,
           displayOrder
         );
 
-
-        /*
-         * Generated ID is intentionally NOT
-         * displayed in the success message.
-         */
-
         setSuccessMessage(
           "Requirement added successfully."
         );
-
       }
-
 
       resetForm();
 
       await loadData();
 
-
     } catch (error) {
-
       console.error(
         "Failed to save requirement:",
         error
       );
-
 
       setErrorMessage(
         error.message ||
         "Unable to save requirement."
       );
 
-
     } finally {
-
       setSaving(false);
-
     }
   };
 
@@ -268,37 +179,22 @@ function RequirementsPage() {
      ========================================= */
 
   const handleEdit = (requirement) => {
-
-    /*
-     * Keep the complete requirement object.
-     *
-     * requirement.id remains available
-     * internally for update operations.
-     */
-
-    setEditingRequirement(
-      requirement
-    );
-
+    setEditingRequirement(requirement);
 
     setTransactionId(
       requirement.transactionId || ""
     );
 
-
     setRequirementText(
       requirement.requirementText || ""
     );
-
 
     setDisplayOrder(
       requirement.displayOrder?.toString() || ""
     );
 
-
     setErrorMessage("");
     setSuccessMessage("");
-
 
     window.scrollTo({
       top: 0,
@@ -312,7 +208,6 @@ function RequirementsPage() {
      ========================================= */
 
   const handleCancelEdit = () => {
-
     resetForm();
 
     setErrorMessage("");
@@ -327,28 +222,17 @@ function RequirementsPage() {
   const handleStatusChange = async (
     requirement
   ) => {
-
     const newStatus =
       !requirement.isActive;
 
-
     try {
-
       setErrorMessage("");
       setSuccessMessage("");
-
-
-      /*
-       * requirement.id is still required
-       * internally to update the correct
-       * Firestore document.
-       */
 
       await setRequirementActiveStatus(
         requirement.id,
         newStatus
       );
-
 
       setSuccessMessage(
         newStatus
@@ -356,104 +240,100 @@ function RequirementsPage() {
           : "Requirement deactivated successfully."
       );
 
-
       await loadData();
 
-
     } catch (error) {
-
       console.error(
         "Failed to update requirement status:",
         error
       );
 
-
       setErrorMessage(
         "Unable to update requirement status."
       );
-
     }
   };
 
 
   /* =========================================
-     DELETE REQUIREMENT
+     OPEN DELETE MODAL
      ========================================= */
 
-  const handleDelete = async (
+  const handleDelete = (
     requirement
   ) => {
+    setRequirementToDelete(
+      requirement
+    );
 
-    const confirmed =
-      window.confirm(
-        `Are you sure you want to delete "${requirement.requirementText}"?\n\nThis action cannot be undone.`
-      );
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
 
 
-    if (!confirmed) {
+  /* =========================================
+     CANCEL DELETE
+     ========================================= */
 
+  const handleCancelDelete = () => {
+    if (deletingId) {
       return;
-
     }
 
+    setRequirementToDelete(null);
+  };
+
+
+  /* =========================================
+     CONFIRM DELETE
+     ========================================= */
+
+  const handleConfirmDelete = async () => {
+    if (!requirementToDelete) {
+      return;
+    }
 
     try {
-
       setDeletingId(
-        requirement.id
+        requirementToDelete.id
       );
 
       setErrorMessage("");
       setSuccessMessage("");
 
-
       await deleteRequirement(
-        requirement.id
+        requirementToDelete.id
       );
-
-
-      /*
-       * If the requirement being deleted
-       * is currently being edited,
-       * clear the form.
-       */
 
       if (
         editingRequirement &&
-        editingRequirement.id === requirement.id
+        editingRequirement.id ===
+          requirementToDelete.id
       ) {
-
         resetForm();
-
       }
-
 
       setSuccessMessage(
         "Requirement deleted successfully."
       );
 
+      setRequirementToDelete(null);
 
       await loadData();
 
-
     } catch (error) {
-
       console.error(
         "Failed to delete requirement:",
         error
       );
-
 
       setErrorMessage(
         error.message ||
         "Unable to delete requirement."
       );
 
-
     } finally {
-
       setDeletingId(null);
-
     }
   };
 
@@ -465,19 +345,16 @@ function RequirementsPage() {
   const getTransactionName = (
     requirementTransactionId
   ) => {
-
     const transaction =
       transactions.find(
         (item) =>
-          item.id === requirementTransactionId
+          item.id ===
+          requirementTransactionId
       );
-
 
     return transaction
       ? transaction.name
-      : requirementTransactionId
-        ? "Unknown Transaction"
-        : "Unknown Transaction";
+      : "Unknown Transaction";
   };
 
 
@@ -486,15 +363,11 @@ function RequirementsPage() {
      ========================================= */
 
   return (
-
     <div className="requirements-page">
 
       <div className="requirements-container">
 
-
-        {/* ===================================
-            HEADER
-            =================================== */}
+        {/* HEADER */}
 
         <header className="requirements-header">
 
@@ -510,18 +383,14 @@ function RequirementsPage() {
         </header>
 
 
-        {/* ===================================
-            ADD / EDIT FORM
-            =================================== */}
+        {/* ADD / EDIT FORM */}
 
         <section className="requirements-card">
 
           <h2>
-
             {editingRequirement
               ? "Edit Requirement"
               : "Add Requirement"}
-
           </h2>
 
 
@@ -532,17 +401,13 @@ function RequirementsPage() {
 
             <div className="requirement-form-grid">
 
-
-              {/* =============================
-                  TRANSACTION
-                  ============================= */}
+              {/* TRANSACTION */}
 
               <div className="requirement-form-group">
 
                 <label htmlFor="transactionId">
                   Transaction
                 </label>
-
 
                 <select
                   id="transactionId"
@@ -558,7 +423,6 @@ function RequirementsPage() {
                   <option value="">
                     Select a transaction
                   </option>
-
 
                   {transactions.map(
                     (transaction) => (
@@ -578,16 +442,13 @@ function RequirementsPage() {
               </div>
 
 
-              {/* =============================
-                  REQUIREMENT
-                  ============================= */}
+              {/* REQUIREMENT */}
 
               <div className="requirement-form-group full-width">
 
                 <label htmlFor="requirementText">
                   Requirement
                 </label>
-
 
                 <textarea
                   id="requirementText"
@@ -605,16 +466,13 @@ function RequirementsPage() {
               </div>
 
 
-              {/* =============================
-                  DISPLAY ORDER
-                  ============================= */}
+              {/* DISPLAY ORDER */}
 
               <div className="requirement-form-group">
 
                 <label htmlFor="displayOrder">
                   Display Order
                 </label>
-
 
                 <input
                   id="displayOrder"
@@ -635,9 +493,7 @@ function RequirementsPage() {
             </div>
 
 
-            {/* ===============================
-                ACTION BUTTONS
-                =============================== */}
+            {/* ACTION BUTTONS */}
 
             <div className="requirement-form-actions">
 
@@ -646,13 +502,11 @@ function RequirementsPage() {
                 className="requirement-primary-button"
                 disabled={saving}
               >
-
                 {saving
                   ? "Saving..."
                   : editingRequirement
                     ? "Save Changes"
                     : "Add Requirement"}
-
               </button>
 
 
@@ -674,7 +528,7 @@ function RequirementsPage() {
           </form>
 
 
-          {/* ERROR MESSAGE */}
+          {/* ERROR */}
 
           {errorMessage && (
 
@@ -685,7 +539,7 @@ function RequirementsPage() {
           )}
 
 
-          {/* SUCCESS MESSAGE */}
+          {/* SUCCESS */}
 
           {successMessage && (
 
@@ -698,9 +552,7 @@ function RequirementsPage() {
         </section>
 
 
-        {/* ===================================
-            EXISTING REQUIREMENTS
-            =================================== */}
+        {/* EXISTING REQUIREMENTS */}
 
         <section className="requirements-card">
 
@@ -725,7 +577,6 @@ function RequirementsPage() {
 
             <div className="requirements-list">
 
-
               {requirements.map(
                 (requirement) => (
 
@@ -741,15 +592,6 @@ function RequirementsPage() {
                         <h3>
                           {requirement.requirementText}
                         </h3>
-
-
-                        {/*
-                          Requirement ID is intentionally
-                          hidden from the admin interface.
-
-                          requirement.id still exists and
-                          is used internally.
-                        */}
 
 
                         <div className="requirement-transaction">
@@ -774,6 +616,8 @@ function RequirementsPage() {
                       </div>
 
 
+                      {/* STATUS */}
+
                       <span
                         className={
                           requirement.isActive
@@ -781,11 +625,9 @@ function RequirementsPage() {
                             : "requirement-status inactive"
                         }
                       >
-
                         {requirement.isActive
                           ? "Active"
                           : "Inactive"}
-
                       </span>
 
                     </div>
@@ -795,14 +637,15 @@ function RequirementsPage() {
 
                     <div className="requirement-item-actions">
 
-
                       {/* EDIT */}
 
                       <button
                         type="button"
                         className="requirement-edit-button"
                         onClick={() =>
-                          handleEdit(requirement)
+                          handleEdit(
+                            requirement
+                          )
                         }
                         disabled={
                           deletingId ===
@@ -828,11 +671,9 @@ function RequirementsPage() {
                           requirement.id
                         }
                       >
-
                         {requirement.isActive
                           ? "Deactivate"
                           : "Activate"}
-
                       </button>
 
 
@@ -851,12 +692,10 @@ function RequirementsPage() {
                           requirement.id
                         }
                       >
-
                         {deletingId ===
                         requirement.id
                           ? "Deleting..."
                           : "Delete"}
-
                       </button>
 
                     </div>
@@ -873,6 +712,31 @@ function RequirementsPage() {
         </section>
 
       </div>
+
+
+      {/* =========================================
+          DELETE CONFIRMATION MODAL
+          ========================================= */}
+
+      <DeleteConfirmationModal
+        isOpen={
+          requirementToDelete !== null
+        }
+        itemType="Requirement"
+        itemName={
+          requirementToDelete?.requirementText ||
+          ""
+        }
+        deleting={
+          deletingId !== null
+        }
+        onCancel={
+          handleCancelDelete
+        }
+        onConfirm={
+          handleConfirmDelete
+        }
+      />
 
     </div>
   );

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-
 import { useNavigate } from "react-router-dom";
-
 
 import {
   getAllTransactions,
@@ -10,14 +8,13 @@ import {
   deleteTransaction
 } from "../services/transactionService";
 
+import DeleteConfirmationModal from "../../../components/DeleteConfirmationModal";
 
 import "../components/TransactionsPage.css";
 
 
 function TransactionsPage() {
-
   const navigate = useNavigate();
-
 
   const [transactions, setTransactions] =
     useState([]);
@@ -32,6 +29,9 @@ function TransactionsPage() {
     useState(null);
 
   const [deletingId, setDeletingId] =
+    useState(null);
+
+  const [transactionToDelete, setTransactionToDelete] =
     useState(null);
 
   const [errorMessage, setErrorMessage] =
@@ -49,12 +49,9 @@ function TransactionsPage() {
      ========================================================= */
 
   const loadData = async () => {
-
     try {
-
       setLoading(true);
       setErrorMessage("");
-
 
       const [
         transactionData,
@@ -64,36 +61,27 @@ function TransactionsPage() {
         getActiveServices()
       ]);
 
-
       setTransactions(transactionData);
       setServices(serviceData);
 
-
     } catch (error) {
-
       console.error(
         "Failed to load transactions:",
         error
       );
 
-
       setErrorMessage(
         "Unable to load transactions."
       );
 
-
     } finally {
-
       setLoading(false);
-
     }
   };
 
 
   useEffect(() => {
-
     loadData();
-
   }, []);
 
 
@@ -102,44 +90,26 @@ function TransactionsPage() {
      ========================================================= */
 
   const handleBackToDashboard = () => {
-
     navigate("/dashboard");
-
   };
 
 
   const handleAddTransaction = () => {
-
     navigate("/transactions/add");
-
   };
 
 
   const handleEdit = (transaction) => {
-
-    /*
-     * transaction.id is still used internally.
-     * It is only hidden from the admin interface.
-     */
-
     navigate(
       `/transactions/edit/${transaction.id}`
     );
-
   };
 
 
   const handleManage = (transaction) => {
-
-    /*
-     * transaction.id remains necessary
-     * for opening the correct transaction.
-     */
-
     navigate(
       `/transactions/manage/${transaction.id}`
     );
-
   };
 
 
@@ -150,19 +120,16 @@ function TransactionsPage() {
   const getServiceName = (
     transactionServiceId
   ) => {
-
     const service =
       services.find(
         (item) =>
           item.id === transactionServiceId
       );
 
-
     return service
       ? service.name
       : transactionServiceId ||
           "Unknown Service";
-
   };
 
 
@@ -173,29 +140,21 @@ function TransactionsPage() {
   const handleStatusChange = async (
     transaction
   ) => {
-
     const newStatus =
       !transaction.isActive;
 
-
     try {
-
-      /*
-       * ID is still used internally here.
-       * Admin does not need to see it.
-       */
-
-      setUpdatingId(transaction.id);
+      setUpdatingId(
+        transaction.id
+      );
 
       setErrorMessage("");
       setSuccessMessage("");
-
 
       await setTransactionActiveStatus(
         transaction.id,
         newStatus
       );
-
 
       setSuccessMessage(
         newStatus
@@ -203,93 +162,95 @@ function TransactionsPage() {
           : `${transaction.name} deactivated successfully.`
       );
 
-
       await loadData();
 
-
     } catch (error) {
-
       console.error(
         "Failed to update transaction status:",
         error
       );
 
-
       setErrorMessage(
         "Unable to update transaction status."
       );
 
-
     } finally {
-
       setUpdatingId(null);
-
     }
   };
 
 
   /* =========================================================
-     DELETE TRANSACTION
+     OPEN DELETE CONFIRMATION
      ========================================================= */
 
-  const handleDelete = async (
+  const handleDelete = (
     transaction
   ) => {
+    setTransactionToDelete(
+      transaction
+    );
 
-    const confirmed =
-      window.confirm(
-        `Are you sure you want to delete "${transaction.name}"?\n\nThis action cannot be undone.`
-      );
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
 
 
-    if (!confirmed) {
+  /* =========================================================
+     CANCEL DELETE
+     ========================================================= */
 
+  const handleCancelDelete = () => {
+    if (deletingId) {
       return;
-
     }
 
+    setTransactionToDelete(null);
+  };
+
+
+  /* =========================================================
+     CONFIRM PERMANENT DELETE
+     ========================================================= */
+
+  const handleConfirmDelete = async () => {
+    if (!transactionToDelete) {
+      return;
+    }
 
     try {
-
       setDeletingId(
-        transaction.id
+        transactionToDelete.id
       );
 
       setErrorMessage("");
       setSuccessMessage("");
 
-
       await deleteTransaction(
-        transaction.id
+        transactionToDelete.id
       );
-
 
       setSuccessMessage(
-        `${transaction.name} deleted successfully.`
+        `${transactionToDelete.name} deleted successfully.`
       );
 
+      setTransactionToDelete(null);
 
       await loadData();
 
-
     } catch (error) {
-
       console.error(
         "Failed to delete transaction:",
         error
       );
-
 
       setErrorMessage(
         error.message ||
         "Unable to delete transaction."
       );
 
-
     } finally {
-
       setDeletingId(null);
-
     }
   };
 
@@ -313,15 +274,11 @@ function TransactionsPage() {
      ========================================================= */
 
   return (
-
     <div className="transactions-page">
 
       <div className="transactions-container">
 
-
-        {/* ===================================================
-            BACK TO DASHBOARD
-            =================================================== */}
+        {/* BACK TO DASHBOARD */}
 
         <button
           type="button"
@@ -340,26 +297,21 @@ function TransactionsPage() {
             gap: "6px"
           }}
         >
-
           <span aria-hidden="true">
             ←
           </span>
 
           Back to Dashboard
-
         </button>
 
 
-        {/* ===================================================
-            HEADER
-            =================================================== */}
+        {/* HEADER */}
 
         <header className="transactions-header">
 
           <div className="transactions-header-content">
 
             <div>
-
               <h1>
                 Transactions / Documents
               </h1>
@@ -368,7 +320,6 @@ function TransactionsPage() {
                 Manage school transactions and
                 documents available in E-ReQuest.
               </p>
-
             </div>
 
 
@@ -385,41 +336,29 @@ function TransactionsPage() {
         </header>
 
 
-        {/* ===================================================
-            MESSAGES
-            =================================================== */}
+        {/* MESSAGES */}
 
         {errorMessage && (
-
           <div className="transaction-error transaction-page-message">
             {errorMessage}
           </div>
-
         )}
 
 
         {successMessage && (
-
           <div className="transaction-success transaction-page-message">
             {successMessage}
           </div>
-
         )}
 
 
-        {/* ===================================================
-            TRANSACTION LIST
-            =================================================== */}
+        {/* TRANSACTION LIST */}
 
         <section className="transactions-card">
-
-
-          {/* LIST HEADER */}
 
           <div className="transaction-list-heading">
 
             <div>
-
               <h2>
                 Available Transactions / Documents
               </h2>
@@ -428,7 +367,6 @@ function TransactionsPage() {
                 Select a transaction to manage or
                 edit its information.
               </p>
-
             </div>
 
 
@@ -440,7 +378,6 @@ function TransactionsPage() {
                 Service
               </label>
 
-
               <select
                 id="serviceFilter"
                 value={serviceFilter}
@@ -450,25 +387,20 @@ function TransactionsPage() {
                   )
                 }
               >
-
                 <option value="">
                   All Services
                 </option>
 
-
                 {services.map(
                   (service) => (
-
                     <option
                       key={service.id}
                       value={service.id}
                     >
                       {service.name}
                     </option>
-
                   )
                 )}
-
               </select>
 
             </div>
@@ -476,9 +408,7 @@ function TransactionsPage() {
           </div>
 
 
-          {/* =================================================
-              TRANSACTION CONTENT
-              ================================================= */}
+          {/* CONTENT */}
 
           {loading ? (
 
@@ -496,7 +426,6 @@ function TransactionsPage() {
 
             <div className="transactions-list">
 
-
               {filteredTransactions.map(
                 (transaction) => (
 
@@ -505,11 +434,9 @@ function TransactionsPage() {
                     className="transaction-item"
                   >
 
-
                     {/* TOP */}
 
                     <div className="transaction-item-top">
-
 
                       {/* INFORMATION */}
 
@@ -519,56 +446,36 @@ function TransactionsPage() {
                           {transaction.name}
                         </h3>
 
-
-                        {/*
-                          Transaction ID intentionally
-                          hidden from the admin interface.
-
-                          transaction.id still exists and
-                          is used internally.
-                        */}
-
-
                         <div className="transaction-service">
-
                           {getServiceName(
                             transaction.serviceId
                           )}
-
                         </div>
 
-
                         <p className="transaction-description">
-
                           {transaction.description ||
                             "No description"}
-
                         </p>
 
 
                         <div className="transaction-office-info">
 
                           <p>
-
                             <strong>
                               Office:
                             </strong>{" "}
 
                             {transaction.officeName ||
                               "Not specified"}
-
                           </p>
 
-
                           <p>
-
                             <strong>
                               Schedule:
                             </strong>{" "}
 
                             {transaction.officeSchedule ||
                               "Not specified"}
-
                           </p>
 
                         </div>
@@ -585,22 +492,17 @@ function TransactionsPage() {
                             : "transaction-status inactive"
                         }
                       >
-
                         {transaction.isActive
                           ? "Active"
                           : "Inactive"}
-
                       </span>
 
                     </div>
 
 
-                    {/* =================================================
-                        ACTION BUTTONS
-                        ================================================= */}
+                    {/* ACTION BUTTONS */}
 
                     <div className="transaction-item-actions">
-
 
                       {/* MANAGE */}
 
@@ -657,14 +559,12 @@ function TransactionsPage() {
                             transaction.id
                         }
                       >
-
                         {updatingId ===
                         transaction.id
                           ? "Updating..."
                           : transaction.isActive
                             ? "Deactivate"
                             : "Activate"}
-
                       </button>
 
 
@@ -685,12 +585,10 @@ function TransactionsPage() {
                             transaction.id
                         }
                       >
-
                         {deletingId ===
                         transaction.id
                           ? "Deleting..."
                           : "Delete"}
-
                       </button>
 
                     </div>
@@ -708,10 +606,32 @@ function TransactionsPage() {
 
       </div>
 
+
+      {/* =====================================================
+          DELETE CONFIRMATION MODAL
+          ===================================================== */}
+
+      <DeleteConfirmationModal
+        isOpen={
+          transactionToDelete !== null
+        }
+        itemType="Transaction"
+        itemName={
+          transactionToDelete?.name || ""
+        }
+        deleting={
+          deletingId !== null
+        }
+        onCancel={
+          handleCancelDelete
+        }
+        onConfirm={
+          handleConfirmDelete
+        }
+      />
+
     </div>
-
   );
-
 }
 
 

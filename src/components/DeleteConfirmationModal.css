@@ -1,0 +1,170 @@
+.delete-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.delete-modal {
+  width: 100%;
+  max-width: 440px;
+
+  padding: 32px;
+
+  background: #ffffff;
+  border-radius: 18px;
+
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.18);
+
+  text-align: center;
+
+  animation: deleteModalOpen 0.18s ease-out;
+}
+
+.delete-modal-icon {
+  width: 54px;
+  height: 54px;
+
+  margin: 0 auto 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #fee2e2;
+  color: #dc2626;
+
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.delete-modal h2 {
+  margin: 0 0 12px;
+
+  color: #172033;
+
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.delete-modal-question {
+  margin: 0;
+
+  color: #475569;
+
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.delete-modal-question strong {
+  color: #172033;
+  font-weight: 700;
+}
+
+.delete-modal-warning {
+  margin-top: 18px;
+  padding: 13px 15px;
+
+  background: #fff7f7;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+
+  color: #b91c1c;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.delete-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  margin-top: 26px;
+}
+
+.delete-modal-actions button {
+  min-height: 42px;
+
+  padding: 0 18px;
+
+  border-radius: 9px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.delete-modal-cancel {
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+
+  color: #475569;
+}
+
+.delete-modal-cancel:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.delete-modal-confirm {
+  background: #dc2626;
+  border: 1px solid #dc2626;
+
+  color: #ffffff;
+}
+
+.delete-modal-confirm:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.delete-modal-actions button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.delete-modal-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@keyframes deleteModalOpen {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .delete-modal {
+    padding: 26px 20px;
+  }
+
+  .delete-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .delete-modal-actions button {
+    width: 100%;
+  }
+}

@@ -9,17 +9,21 @@ import {
   deleteAnnouncement
 } from "../services/announcementService";
 
+import DeleteConfirmationModal from "../../../components/DeleteConfirmationModal";
+
 import "../components/AnnouncementsPage.css";
 
 
 function AnnouncementsPage() {
-
   const navigate = useNavigate();
 
   const [announcements, setAnnouncements] = useState([]);
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const [announcementToDelete, setAnnouncementToDelete] =
+    useState(null);
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -39,24 +43,23 @@ function AnnouncementsPage() {
      ========================================================= */
 
   const loadAnnouncements = async () => {
-
     try {
-
       setLoading(true);
       setErrorMessage("");
 
-      const data = await getAllAnnouncements();
+      const data =
+        await getAllAnnouncements();
 
-      const sortedData = [...data].sort(
-        (a, b) =>
-          (a.displayOrder || 0) -
-          (b.displayOrder || 0)
-      );
+      const sortedData =
+        [...data].sort(
+          (a, b) =>
+            (a.displayOrder || 0) -
+            (b.displayOrder || 0)
+        );
 
       setAnnouncements(sortedData);
 
     } catch (error) {
-
       console.error(
         "Failed to load announcements:",
         error
@@ -67,16 +70,13 @@ function AnnouncementsPage() {
       );
 
     } finally {
-
       setLoading(false);
     }
   };
 
 
   useEffect(() => {
-
     loadAnnouncements();
-
   }, []);
 
 
@@ -85,7 +85,6 @@ function AnnouncementsPage() {
      ========================================================= */
 
   const resetForm = () => {
-
     setTitle("");
     setMessage("");
     setDisplayOrder("");
@@ -100,12 +99,13 @@ function AnnouncementsPage() {
      ========================================================= */
 
   const handleAdd = () => {
-
     setTitle("");
     setMessage("");
 
     setDisplayOrder(
-      String(announcements.length + 1)
+      String(
+        announcements.length + 1
+      )
     );
 
     setEditingAnnouncement(null);
@@ -121,8 +121,9 @@ function AnnouncementsPage() {
      EDIT
      ========================================================= */
 
-  const handleEdit = (announcement) => {
-
+  const handleEdit = (
+    announcement
+  ) => {
     setTitle(
       announcement.title || ""
     );
@@ -132,10 +133,13 @@ function AnnouncementsPage() {
     );
 
     setDisplayOrder(
-      announcement.displayOrder?.toString() || ""
+      announcement.displayOrder?.toString() ||
+        ""
     );
 
-    setEditingAnnouncement(announcement);
+    setEditingAnnouncement(
+      announcement
+    );
 
     setErrorMessage("");
     setSuccessMessage("");
@@ -153,16 +157,15 @@ function AnnouncementsPage() {
      SAVE
      ========================================================= */
 
-  const handleSubmit = async (event) => {
-
+  const handleSubmit = async (
+    event
+  ) => {
     event.preventDefault();
 
     setErrorMessage("");
     setSuccessMessage("");
 
-
     if (!title.trim()) {
-
       setErrorMessage(
         "Announcement title is required."
       );
@@ -170,9 +173,7 @@ function AnnouncementsPage() {
       return;
     }
 
-
     if (!message.trim()) {
-
       setErrorMessage(
         "Announcement message is required."
       );
@@ -180,12 +181,10 @@ function AnnouncementsPage() {
       return;
     }
 
-
     if (
       !displayOrder ||
       Number(displayOrder) < 1
     ) {
-
       setErrorMessage(
         "Display order must be greater than 0."
       );
@@ -193,14 +192,10 @@ function AnnouncementsPage() {
       return;
     }
 
-
     try {
-
       setSaving(true);
 
-
       if (editingAnnouncement) {
-
         await updateAnnouncement(
           editingAnnouncement.id,
           title,
@@ -213,7 +208,6 @@ function AnnouncementsPage() {
         );
 
       } else {
-
         await addAnnouncement(
           title,
           message,
@@ -225,19 +219,16 @@ function AnnouncementsPage() {
         );
       }
 
-
       setTitle("");
       setMessage("");
       setDisplayOrder("");
+
       setEditingAnnouncement(null);
       setShowForm(false);
 
-
       await loadAnnouncements();
 
-
     } catch (error) {
-
       console.error(
         "Failed to save announcement:",
         error
@@ -245,11 +236,10 @@ function AnnouncementsPage() {
 
       setErrorMessage(
         error.message ||
-        "Unable to save announcement."
+          "Unable to save announcement."
       );
 
     } finally {
-
       setSaving(false);
     }
   };
@@ -262,12 +252,10 @@ function AnnouncementsPage() {
   const handleStatusChange = async (
     announcement
   ) => {
-
     const newStatus =
       !announcement.isActive;
 
     try {
-
       setSaving(true);
 
       setErrorMessage("");
@@ -287,7 +275,6 @@ function AnnouncementsPage() {
       await loadAnnouncements();
 
     } catch (error) {
-
       console.error(
         "Failed to update announcement status:",
         error
@@ -298,82 +285,97 @@ function AnnouncementsPage() {
       );
 
     } finally {
-
       setSaving(false);
     }
   };
 
 
   /* =========================================================
-     DELETE ANNOUNCEMENT
+     OPEN DELETE MODAL
      ========================================================= */
 
-  const handleDelete = async (
+  const handleDelete = (
     announcement
   ) => {
-
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete "${announcement.title}"?\n\nThis action cannot be undone.`
+    console.log(
+      "ANNOUNCEMENT DELETE CLICKED:",
+      announcement
     );
 
+    setAnnouncementToDelete(
+      announcement
+    );
 
-    if (!confirmed) {
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
+
+
+  /* =========================================================
+     CANCEL DELETE
+     ========================================================= */
+
+  const handleCancelDelete = () => {
+    if (deletingId) {
       return;
     }
 
-
-    try {
-
-      setSaving(true);
-
-      setErrorMessage("");
-      setSuccessMessage("");
+    setAnnouncementToDelete(null);
+  };
 
 
-      await deleteAnnouncement(
-        announcement.id
-      );
+  /* =========================================================
+     CONFIRM PERMANENT DELETE
+     ========================================================= */
 
-
-      /*
-       * If the announcement currently being edited
-       * is the same announcement being deleted,
-       * close and clear the form.
-       */
-      if (
-        editingAnnouncement?.id ===
-        announcement.id
-      ) {
-
-        resetForm();
+  const handleConfirmDelete =
+    async () => {
+      if (!announcementToDelete) {
+        return;
       }
 
+      try {
+        setDeletingId(
+          announcementToDelete.id
+        );
 
-      setSuccessMessage(
-        "Announcement deleted successfully."
-      );
+        setErrorMessage("");
+        setSuccessMessage("");
 
+        await deleteAnnouncement(
+          announcementToDelete.id
+        );
 
-      await loadAnnouncements();
+        if (
+          editingAnnouncement?.id ===
+          announcementToDelete.id
+        ) {
+          resetForm();
+        }
 
+        setSuccessMessage(
+          "Announcement deleted successfully."
+        );
 
-    } catch (error) {
+        setAnnouncementToDelete(null);
 
-      console.error(
-        "Failed to delete announcement:",
-        error
-      );
+        await loadAnnouncements();
 
-      setErrorMessage(
-        error.message ||
-        "Unable to delete announcement."
-      );
+      } catch (error) {
+        console.error(
+          "Failed to delete announcement:",
+          error
+        );
 
-    } finally {
+        setErrorMessage(
+          error.message ||
+            "Unable to delete announcement."
+        );
 
-      setSaving(false);
-    }
-  };
+      } finally {
+        setDeletingId(null);
+      }
+    };
 
 
   /* =========================================================
@@ -381,384 +383,404 @@ function AnnouncementsPage() {
      ========================================================= */
 
   return (
+    <>
+      <div className="announcements-page">
 
-    <div className="announcements-page">
+        <div className="announcements-container">
 
-      <div className="announcements-container">
-
-
-        {/* =====================================================
-            BACK BUTTON
-            ===================================================== */}
-
-        <button
-          type="button"
-          className="announcements-back-button"
-          onClick={() => navigate("/dashboard")}
-        >
-          ← Back to Dashboard
-        </button>
-
-
-        {/* =====================================================
-            HEADER
-            ===================================================== */}
-
-        <header className="announcements-header">
-
-          <div>
-
-            <h1>
-              Announcements
-            </h1>
-
-            <p>
-              Manage important announcements shown
-              to students in the E-ReQuest application.
-            </p>
-
-          </div>
-
+          {/* BACK BUTTON */}
 
           <button
             type="button"
-            className="announcement-primary-button"
-            onClick={handleAdd}
-            disabled={saving}
+            className="announcements-back-button"
+            onClick={() =>
+              navigate("/dashboard")
+            }
           >
-            + Add Announcement
+            ← Back to Dashboard
           </button>
 
-        </header>
 
+          {/* HEADER */}
 
-        {/* =====================================================
-            ERROR MESSAGE
-            ===================================================== */}
-
-        {errorMessage && (
-
-          <div className="announcement-error">
-            {errorMessage}
-          </div>
-
-        )}
-
-
-        {/* =====================================================
-            SUCCESS MESSAGE
-            ===================================================== */}
-
-        {successMessage && (
-
-          <div className="announcement-success">
-            {successMessage}
-          </div>
-
-        )}
-
-
-        {/* =====================================================
-            ADD / EDIT FORM
-            ===================================================== */}
-
-        {showForm && (
-
-          <section className="announcement-card">
-
-            <h2>
-              {editingAnnouncement
-                ? "Edit Announcement"
-                : "Add Announcement"}
-            </h2>
-
-
-            <form onSubmit={handleSubmit}>
-
-              <div className="announcement-form-grid">
-
-
-                {/* DISPLAY ORDER */}
-
-                <div className="announcement-form-group">
-
-                  <label htmlFor="displayOrder">
-                    Display Order
-                  </label>
-
-                  <input
-                    id="displayOrder"
-                    type="number"
-                    min="1"
-                    value={displayOrder}
-                    onChange={(event) =>
-                      setDisplayOrder(
-                        event.target.value
-                      )
-                    }
-                    disabled={saving}
-                    required
-                  />
-
-                </div>
-
-
-                {/* TITLE */}
-
-                <div className="announcement-form-group full-width">
-
-                  <label htmlFor="announcementTitle">
-                    Title
-                  </label>
-
-                  <input
-                    id="announcementTitle"
-                    type="text"
-                    placeholder="Example: Registrar Office Closed"
-                    value={title}
-                    onChange={(event) =>
-                      setTitle(event.target.value)
-                    }
-                    disabled={saving}
-                    required
-                  />
-
-                </div>
-
-
-                {/* MESSAGE */}
-
-                <div className="announcement-form-group full-width">
-
-                  <label htmlFor="announcementMessage">
-                    Message
-                  </label>
-
-                  <textarea
-                    id="announcementMessage"
-                    placeholder="Enter announcement message"
-                    value={message}
-                    onChange={(event) =>
-                      setMessage(event.target.value)
-                    }
-                    disabled={saving}
-                    rows="5"
-                    required
-                  />
-
-                </div>
-
-              </div>
-
-
-              {/* FORM BUTTONS */}
-
-              <div className="announcement-form-actions">
-
-                <button
-                  type="submit"
-                  className="announcement-primary-button"
-                  disabled={saving}
-                >
-
-                  {saving
-                    ? "Saving..."
-                    : editingAnnouncement
-                      ? "Save Changes"
-                      : "Add Announcement"}
-
-                </button>
-
-
-                <button
-                  type="button"
-                  className="announcement-secondary-button"
-                  onClick={resetForm}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-
-              </div>
-
-            </form>
-
-          </section>
-
-        )}
-
-
-        {/* =====================================================
-            ANNOUNCEMENTS LIST
-            ===================================================== */}
-
-        <section className="announcement-card">
-
-          <div className="announcement-list-heading">
+          <header className="announcements-header">
 
             <div>
-
-              <h2>
-                Available Announcements
-              </h2>
+              <h1>
+                Announcements
+              </h1>
 
               <p>
-                Announcements currently stored
-                in the system.
+                Manage important announcements shown
+                to students in the E-ReQuest application.
               </p>
-
             </div>
 
-          </div>
+
+            <button
+              type="button"
+              className="announcement-primary-button"
+              onClick={handleAdd}
+              disabled={
+                saving ||
+                deletingId !== null
+              }
+            >
+              + Add Announcement
+            </button>
+
+          </header>
 
 
-          {loading ? (
+          {/* ERROR MESSAGE */}
 
-            <div className="announcement-state-message">
-              Loading announcements...
+          {errorMessage && (
+            <div className="announcement-error">
+              {errorMessage}
             </div>
+          )}
 
-          ) : announcements.length === 0 ? (
 
-            <div className="announcement-state-message">
-              No announcements have been added yet.
+          {/* SUCCESS MESSAGE */}
+
+          {successMessage && (
+            <div className="announcement-success">
+              {successMessage}
             </div>
-
-          ) : (
-
-            <div className="announcement-list">
-
-              {announcements.map(
-                (announcement) => (
-
-                  <div
-                    key={announcement.id}
-                    className="announcement-item"
-                  >
-
-                    <div className="announcement-item-content">
+          )}
 
 
-                      {/* DISPLAY ORDER */}
+          {/* ADD / EDIT FORM */}
 
-                      <div className="announcement-order">
-                        {announcement.displayOrder}
-                      </div>
+          {showForm && (
+            <section className="announcement-card">
 
-
-                      {/* INFORMATION */}
-
-                      <div className="announcement-information">
-
-                        <h3>
-                          {announcement.title}
-                        </h3>
-
-                        <p className="announcement-message">
-                          {announcement.message}
-                        </p>
-
-                      </div>
-
-                    </div>
+              <h2>
+                {editingAnnouncement
+                  ? "Edit Announcement"
+                  : "Add Announcement"}
+              </h2>
 
 
-                    {/* ACTIONS */}
+              <form onSubmit={handleSubmit}>
 
-                    <div className="announcement-actions">
+                <div className="announcement-form-grid">
 
+                  {/* DISPLAY ORDER */}
 
-                      {/* STATUS */}
+                  <div className="announcement-form-group">
 
-                      <span
-                        className={
-                          announcement.isActive
-                            ? "announcement-status active"
-                            : "announcement-status inactive"
-                        }
-                      >
-                        {announcement.isActive
-                          ? "Active"
-                          : "Inactive"}
-                      </span>
+                    <label htmlFor="displayOrder">
+                      Display Order
+                    </label>
 
-
-                      {/* EDIT */}
-
-                      <button
-                        type="button"
-                        className="announcement-edit-button"
-                        onClick={() =>
-                          handleEdit(announcement)
-                        }
-                        disabled={saving}
-                      >
-                        Edit
-                      </button>
-
-
-                      {/* ACTIVATE / DEACTIVATE */}
-
-                      <button
-                        type="button"
-                        className="announcement-status-button"
-                        onClick={() =>
-                          handleStatusChange(
-                            announcement
-                          )
-                        }
-                        disabled={saving}
-                      >
-
-                        {announcement.isActive
-                          ? "Deactivate"
-                          : "Activate"}
-
-                      </button>
-
-
-                      {/* DELETE */}
-
-                      <button
-                        type="button"
-                        className="announcement-delete-button"
-                        onClick={() =>
-                          handleDelete(
-                            announcement
-                          )
-                        }
-                        disabled={saving}
-                        style={{
-                          backgroundColor: "#dc3545",
-                          color: "#ffffff",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "8px 14px",
-                          cursor: saving
-                            ? "not-allowed"
-                            : "pointer",
-                          fontWeight: "600"
-                        }}
-                      >
-                        Delete
-                      </button>
-
-                    </div>
+                    <input
+                      id="displayOrder"
+                      type="number"
+                      min="1"
+                      value={displayOrder}
+                      onChange={(event) =>
+                        setDisplayOrder(
+                          event.target.value
+                        )
+                      }
+                      disabled={saving}
+                      required
+                    />
 
                   </div>
 
-                )
-              )}
+
+                  {/* TITLE */}
+
+                  <div className="announcement-form-group full-width">
+
+                    <label htmlFor="announcementTitle">
+                      Title
+                    </label>
+
+                    <input
+                      id="announcementTitle"
+                      type="text"
+                      placeholder="Example: Registrar Office Closed"
+                      value={title}
+                      onChange={(event) =>
+                        setTitle(
+                          event.target.value
+                        )
+                      }
+                      disabled={saving}
+                      required
+                    />
+
+                  </div>
+
+
+                  {/* MESSAGE */}
+
+                  <div className="announcement-form-group full-width">
+
+                    <label htmlFor="announcementMessage">
+                      Message
+                    </label>
+
+                    <textarea
+                      id="announcementMessage"
+                      placeholder="Enter announcement message"
+                      value={message}
+                      onChange={(event) =>
+                        setMessage(
+                          event.target.value
+                        )
+                      }
+                      disabled={saving}
+                      rows="5"
+                      required
+                    />
+
+                  </div>
+
+                </div>
+
+
+                {/* FORM BUTTONS */}
+
+                <div className="announcement-form-actions">
+
+                  <button
+                    type="submit"
+                    className="announcement-primary-button"
+                    disabled={saving}
+                  >
+                    {saving
+                      ? "Saving..."
+                      : editingAnnouncement
+                        ? "Save Changes"
+                        : "Add Announcement"}
+                  </button>
+
+
+                  <button
+                    type="button"
+                    className="announcement-secondary-button"
+                    onClick={resetForm}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+
+                </div>
+
+              </form>
+
+            </section>
+          )}
+
+
+          {/* ANNOUNCEMENTS LIST */}
+
+          <section className="announcement-card">
+
+            <div className="announcement-list-heading">
+
+              <div>
+                <h2>
+                  Available Announcements
+                </h2>
+
+                <p>
+                  Announcements currently stored
+                  in the system.
+                </p>
+              </div>
 
             </div>
 
-          )}
 
-        </section>
+            {loading ? (
+
+              <div className="announcement-state-message">
+                Loading announcements...
+              </div>
+
+            ) : announcements.length === 0 ? (
+
+              <div className="announcement-state-message">
+                No announcements have been added yet.
+              </div>
+
+            ) : (
+
+              <div className="announcement-list">
+
+                {announcements.map(
+                  (announcement) => (
+
+                    <div
+                      key={announcement.id}
+                      className="announcement-item"
+                    >
+
+                      {/* CONTENT */}
+
+                      <div className="announcement-item-content">
+
+                        <div className="announcement-order">
+                          {announcement.displayOrder}
+                        </div>
+
+
+                        <div className="announcement-information">
+
+                          <h3>
+                            {announcement.title}
+                          </h3>
+
+                          <p className="announcement-message">
+                            {announcement.message}
+                          </p>
+
+                        </div>
+
+                      </div>
+
+
+                      {/* ACTIONS */}
+
+                      <div className="announcement-actions">
+
+                        {/* STATUS */}
+
+                        <span
+                          className={
+                            announcement.isActive
+                              ? "announcement-status active"
+                              : "announcement-status inactive"
+                          }
+                        >
+                          {announcement.isActive
+                            ? "Active"
+                            : "Inactive"}
+                        </span>
+
+
+                        {/* EDIT */}
+
+                        <button
+                          type="button"
+                          className="announcement-edit-button"
+                          onClick={() =>
+                            handleEdit(
+                              announcement
+                            )
+                          }
+                          disabled={
+                            saving ||
+                            deletingId !== null
+                          }
+                        >
+                          Edit
+                        </button>
+
+
+                        {/* ACTIVATE / DEACTIVATE */}
+
+                        <button
+                          type="button"
+                          className="announcement-status-button"
+                          onClick={() =>
+                            handleStatusChange(
+                              announcement
+                            )
+                          }
+                          disabled={
+                            saving ||
+                            deletingId !== null
+                          }
+                        >
+                          {announcement.isActive
+                            ? "Deactivate"
+                            : "Activate"}
+                        </button>
+
+
+                        {/* DELETE */}
+
+                        <button
+                          type="button"
+                          className="announcement-delete-button"
+                          onClick={() =>
+                            handleDelete(
+                              announcement
+                            )
+                          }
+                          disabled={
+                            saving ||
+                            deletingId !== null
+                          }
+                          style={{
+                            backgroundColor: "#dc3545",
+                            color: "#ffffff",
+                            border: "none",
+                            borderRadius: "6px",
+                            padding: "8px 14px",
+                            cursor:
+                              saving ||
+                              deletingId !== null
+                                ? "not-allowed"
+                                : "pointer",
+                            fontWeight: "600"
+                          }}
+                        >
+                          {deletingId ===
+                          announcement.id
+                            ? "Deleting..."
+                            : "Delete"}
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  )
+                )}
+
+              </div>
+
+            )}
+
+          </section>
+
+        </div>
 
       </div>
 
-    </div>
+
+      {/* =====================================================
+          DELETE CONFIRMATION MODAL
+          ===================================================== */}
+
+      <DeleteConfirmationModal
+        isOpen={
+          announcementToDelete !== null
+        }
+        itemType="Announcement"
+        itemName={
+          announcementToDelete?.title ||
+          ""
+        }
+        deleting={
+          deletingId !== null
+        }
+        onCancel={
+          handleCancelDelete
+        }
+        onConfirm={
+          handleConfirmDelete
+        }
+      />
+
+    </>
   );
 }
 
