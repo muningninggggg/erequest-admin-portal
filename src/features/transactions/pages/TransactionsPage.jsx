@@ -5,7 +5,8 @@ import {
   getAllTransactions,
   getActiveServices,
   setTransactionActiveStatus,
-  deleteTransaction
+  deleteTransaction,
+  getTransactionChildCounts
 } from "../services/transactionService";
 
 import DeleteConfirmationModal from "../../../components/DeleteConfirmationModal";
@@ -33,6 +34,12 @@ function TransactionsPage() {
 
   const [transactionToDelete, setTransactionToDelete] =
     useState(null);
+
+  const [isBlocked, setIsBlocked] =
+    useState(false);
+
+  const [blockedDetails, setBlockedDetails] =
+    useState([]);
 
   const [errorMessage, setErrorMessage] =
     useState("");
@@ -184,15 +191,63 @@ function TransactionsPage() {
      OPEN DELETE CONFIRMATION
      ========================================================= */
 
-  const handleDelete = (
+  const handleDelete = async (
     transaction
   ) => {
-    setTransactionToDelete(
-      transaction
-    );
-
     setErrorMessage("");
     setSuccessMessage("");
+
+    try {
+      setUpdatingId(transaction.id);
+
+      const counts =
+        await getTransactionChildCounts(transaction.id);
+
+      if (counts.total > 0) {
+        const details = [];
+
+        if (counts.requirements > 0) {
+          details.push(
+            `${counts.requirements} Requirement(s)`
+          );
+        }
+
+        if (counts.procedures > 0) {
+          details.push(
+            `${counts.procedures} Procedure Step(s)`
+          );
+        }
+
+        if (counts.guidelines > 0) {
+          details.push(
+            `${counts.guidelines} Guideline(s)`
+          );
+        }
+
+        setIsBlocked(true);
+        setBlockedDetails(details);
+      } else {
+        setIsBlocked(false);
+        setBlockedDetails([]);
+      }
+
+      setTransactionToDelete(
+        transaction
+      );
+    } catch (error) {
+      console.error(
+        "Failed to verify transaction child records:",
+        error
+      );
+
+      setIsBlocked(false);
+      setBlockedDetails([]);
+      setTransactionToDelete(
+        transaction
+      );
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
 
@@ -206,6 +261,8 @@ function TransactionsPage() {
     }
 
     setTransactionToDelete(null);
+    setIsBlocked(false);
+    setBlockedDetails([]);
   };
 
 
@@ -622,6 +679,9 @@ function TransactionsPage() {
         deleting={
           deletingId !== null
         }
+        isBlocked={isBlocked}
+        blockedDetails={blockedDetails}
+        recommendation="Please remove these records first, or use Deactivate instead."
         onCancel={
           handleCancelDelete
         }

@@ -4,7 +4,9 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  query,
+  where
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -321,6 +323,59 @@ export async function setTransactionActiveStatus(
 
 
 /* =========================================
+   GET TRANSACTION CHILD COUNTS
+   Used to prevent orphaned records on transaction deletion
+   ========================================= */
+
+export async function getTransactionChildCounts(
+  transactionId
+) {
+  if (!transactionId) {
+    return {
+      requirements: 0,
+      procedures: 0,
+      guidelines: 0,
+      total: 0
+    };
+  }
+
+  const [reqSnapshot, procSnapshot, guideSnapshot] =
+    await Promise.all([
+      getDocs(
+        query(
+          collection(db, "requirements"),
+          where("transactionId", "==", transactionId)
+        )
+      ),
+      getDocs(
+        query(
+          collection(db, "procedure_steps"),
+          where("transactionId", "==", transactionId)
+        )
+      ),
+      getDocs(
+        query(
+          collection(db, "department_guidelines"),
+          where("transactionId", "==", transactionId)
+        )
+      )
+    ]);
+
+  const requirements = reqSnapshot.size;
+  const procedures = procSnapshot.size;
+  const guidelines = guideSnapshot.size;
+  const total = requirements + procedures + guidelines;
+
+  return {
+    requirements,
+    procedures,
+    guidelines,
+    total
+  };
+}
+
+
+/* =========================================
    DELETE TRANSACTION
    ========================================= */
 
@@ -329,6 +384,35 @@ export async function deleteTransaction(
 ) {
   if (!transactionId) {
     throw new Error("Transaction ID is required.");
+  }
+
+  /*
+   * Check if child records exist.
+   * Prevent deletion to avoid orphaned records.
+   */
+  const childCounts =
+    await getTransactionChildCounts(transactionId);
+
+  if (childCounts.total > 0) {
+    const parts = [];
+
+    if (childCounts.requirements > 0) {
+      parts.push(`${childCounts.requirements} requirement(s)`);
+    }
+
+    if (childCounts.procedures > 0) {
+      parts.push(`${childCounts.procedures} procedure step(s)`);
+    }
+
+    if (childCounts.guidelines > 0) {
+      parts.push(`${childCounts.guidelines} guideline(s)`);
+    }
+
+    throw new Error(
+      `Cannot delete this transaction because it contains ${parts.join(
+        ", "
+      )}. Please remove these child records first, or deactivate this transaction instead.`
+    );
   }
 
   /*

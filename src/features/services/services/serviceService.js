@@ -4,7 +4,9 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  query,
+  where
 } from "firebase/firestore";
 
 import {
@@ -476,6 +478,42 @@ export async function setServiceActiveStatus(
 
 
 /* =========================================================
+   GET SERVICE TRANSACTION COUNT
+   Used to prevent orphaned records on service deletion
+   ========================================================= */
+
+export async function getServiceTransactionCount(
+  serviceId
+) {
+
+  if (!serviceId) {
+    return 0;
+  }
+
+  const transactionsQuery =
+    query(
+      collection(
+        db,
+        "transactions"
+      ),
+      where(
+        "serviceId",
+        "==",
+        serviceId
+      )
+    );
+
+  const snapshot =
+    await getDocs(
+      transactionsQuery
+    );
+
+  return snapshot.size;
+
+}
+
+
+/* =========================================================
    DELETE SERVICE
    ========================================================= */
 
@@ -489,6 +527,21 @@ export async function deleteService(
       "Service ID is required."
     );
 
+  }
+
+  /*
+   * Check if child transactions exist.
+   * Prevent deletion to avoid orphaned records.
+   */
+  const transactionCount =
+    await getServiceTransactionCount(
+      serviceId
+    );
+
+  if (transactionCount > 0) {
+    throw new Error(
+      `Cannot delete this service because it contains ${transactionCount} transaction(s). Please delete or reassign those transactions first, or deactivate this service instead.`
+    );
   }
 
 

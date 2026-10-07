@@ -143,6 +143,37 @@
   opacity: 0.6;
 }
 
+/* =========================================================
+   BLOCKED DELETION STYLES
+   ========================================================= */
+
+.delete-modal-icon-blocked {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.delete-modal-blocked-box {
+  text-align: left;
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.delete-modal-blocked-list {
+  margin: 8px 0 10px 18px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.delete-modal-recommendation {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #78350f;
+  font-weight: 500;
+}
+
 @keyframes deleteModalOpen {
   from {
     opacity: 0;

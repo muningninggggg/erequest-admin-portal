@@ -6,7 +6,8 @@ import {
   addService,
   updateService,
   setServiceActiveStatus,
-  deleteService
+  deleteService,
+  getServiceTransactionCount
 } from "../services/serviceService";
 
 import DeleteConfirmationModal from "../../../components/DeleteConfirmationModal";
@@ -32,6 +33,8 @@ function ServicesPage() {
   /* DELETE MODAL */
   const [serviceToDelete, setServiceToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockedDetails, setBlockedDetails] = useState([]);
 
 
   /* =========================================================
@@ -236,11 +239,39 @@ function ServicesPage() {
      OPEN DELETE CONFIRMATION
      ========================================================= */
 
-  const handleDelete = (service) => {
-    setServiceToDelete(service);
-
+  const handleDelete = async (service) => {
     setErrorMessage("");
     setSuccessMessage("");
+
+    try {
+      setDeleting(true);
+
+      const transactionCount =
+        await getServiceTransactionCount(service.id);
+
+      if (transactionCount > 0) {
+        setIsBlocked(true);
+        setBlockedDetails([
+          `${transactionCount} Transaction(s) belong to this service.`
+        ]);
+      } else {
+        setIsBlocked(false);
+        setBlockedDetails([]);
+      }
+
+      setServiceToDelete(service);
+    } catch (error) {
+      console.error(
+        "Failed to verify service transactions:",
+        error
+      );
+
+      setIsBlocked(false);
+      setBlockedDetails([]);
+      setServiceToDelete(service);
+    } finally {
+      setDeleting(false);
+    }
   };
 
 
@@ -254,6 +285,8 @@ function ServicesPage() {
     }
 
     setServiceToDelete(null);
+    setIsBlocked(false);
+    setBlockedDetails([]);
   };
 
 
@@ -630,6 +663,9 @@ function ServicesPage() {
         itemType="Service"
         itemName={serviceToDelete?.name || ""}
         deleting={deleting}
+        isBlocked={isBlocked}
+        blockedDetails={blockedDetails}
+        recommendation="Please delete or reassign those Transactions first, or use Deactivate instead."
         onCancel={handleCancelDelete}
         onConfirm={handleConfirmDelete}
       />
