@@ -4,6 +4,8 @@ import {
   useNavigate
 } from "react-router-dom";
 
+import { logoutAdmin } from "../features/auth/services/authService";
+
 import "./AdminLayout.css";
 
 
@@ -177,20 +179,34 @@ function AdminLayout() {
 
   /* =========================================================
      LOGOUT
-
-     For now, this redirects to Login.
-     We will connect this to your existing Firebase logout
-     after confirming how LoginPage handles authentication.
      ========================================================= */
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
 
-    navigate(
-      "/login",
-      {
-        replace: true
-      }
-    );
+    try {
+
+      await logoutAdmin();
+
+      navigate(
+        "/login",
+        {
+          replace: true
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to log out administrator:",
+        error
+      );
+
+      alert(
+        error.message ||
+        "Unable to log out. Please try again."
+      );
+
+    }
 
   };
 
