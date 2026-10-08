@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import {
   getAllGuidelines,
@@ -38,7 +38,7 @@ function GuidelinesSection({
      LOAD GUIDELINES
      ========================================================= */
 
-  const loadGuidelines = async () => {
+  const loadGuidelines = useCallback(async () => {
     if (!transactionId) {
       setGuidelines([]);
       setLoading(false);
@@ -82,11 +82,64 @@ function GuidelinesSection({
     } finally {
       setLoading(false);
     }
-  };
+  }, [transactionId]);
 
 
   useEffect(() => {
-    loadGuidelines();
+    if (!transactionId) {
+      return;
+    }
+
+    let ignore = false;
+
+    const fetchGuidelines = async () => {
+      try {
+        const allGuidelines =
+          await getAllGuidelines();
+
+        if (!ignore) {
+          const filteredGuidelines =
+            allGuidelines
+              .filter(
+                (guideline) =>
+                  guideline.transactionId ===
+                  transactionId
+              )
+              .sort(
+                (a, b) =>
+                  (a.displayOrder || 0) -
+                  (b.displayOrder || 0)
+              );
+
+          setGuidelines(
+            filteredGuidelines
+          );
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to load guidelines:",
+          error
+        );
+
+        if (!ignore) {
+          setErrorMessage(
+            "Unable to load guidelines."
+          );
+        }
+
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchGuidelines();
+
+    return () => {
+      ignore = true;
+    };
   }, [transactionId]);
 
 

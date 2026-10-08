@@ -88,7 +88,47 @@ function TransactionsPage() {
 
 
   useEffect(() => {
-    loadData();
+    let ignore = false;
+
+    const fetchInitialData = async () => {
+      try {
+        const [
+          transactionData,
+          serviceData
+        ] = await Promise.all([
+          getAllTransactions(),
+          getActiveServices()
+        ]);
+
+        if (!ignore) {
+          setTransactions(transactionData);
+          setServices(serviceData);
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to load transactions:",
+          error
+        );
+
+        if (!ignore) {
+          setErrorMessage(
+            "Unable to load transactions."
+          );
+        }
+
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchInitialData();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
 

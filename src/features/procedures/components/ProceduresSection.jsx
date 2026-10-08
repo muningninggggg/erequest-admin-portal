@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import {
   getAllProcedureSteps,
@@ -55,7 +55,7 @@ function ProceduresSection({
      LOAD PROCEDURES
      ========================================================= */
 
-  const loadProcedures = async () => {
+  const loadProcedures = useCallback(async () => {
     if (!transactionId) {
       setProcedures([]);
       setLoading(false);
@@ -96,11 +96,61 @@ function ProceduresSection({
     } finally {
       setLoading(false);
     }
-  };
+  }, [transactionId]);
 
 
   useEffect(() => {
-    loadProcedures();
+    if (!transactionId) {
+      return;
+    }
+
+    let ignore = false;
+
+    const fetchProcedures = async () => {
+      try {
+        const allProcedures =
+          await getAllProcedureSteps();
+
+        if (!ignore) {
+          const filteredProcedures =
+            allProcedures
+              .filter(
+                (procedure) =>
+                  procedure.transactionId === transactionId
+              )
+              .sort(
+                (a, b) =>
+                  (a.stepNumber || 0) -
+                  (b.stepNumber || 0)
+              );
+
+          setProcedures(filteredProcedures);
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to load procedure steps:",
+          error
+        );
+
+        if (!ignore) {
+          setErrorMessage(
+            "Unable to load procedure steps."
+          );
+        }
+
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchProcedures();
+
+    return () => {
+      ignore = true;
+    };
   }, [transactionId]);
 
 

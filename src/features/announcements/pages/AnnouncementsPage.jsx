@@ -76,7 +76,48 @@ function AnnouncementsPage() {
 
 
   useEffect(() => {
-    loadAnnouncements();
+    let ignore = false;
+
+    const fetchInitialData = async () => {
+      try {
+        const data =
+          await getAllAnnouncements();
+
+        const sortedData =
+          [...data].sort(
+            (a, b) =>
+              (a.displayOrder || 0) -
+              (b.displayOrder || 0)
+          );
+
+        if (!ignore) {
+          setAnnouncements(sortedData);
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to load announcements:",
+          error
+        );
+
+        if (!ignore) {
+          setErrorMessage(
+            "Unable to load announcements."
+          );
+        }
+
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchInitialData();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
 

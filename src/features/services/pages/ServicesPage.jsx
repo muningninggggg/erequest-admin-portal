@@ -67,7 +67,40 @@ function ServicesPage() {
 
 
   useEffect(() => {
-    loadServices();
+    let ignore = false;
+
+    const fetchInitialData = async () => {
+      try {
+        const data = await getAllServices();
+
+        if (!ignore) {
+          setServices(data);
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to load services:",
+          error
+        );
+
+        if (!ignore) {
+          setErrorMessage(
+            "Unable to load services. Please try again."
+          );
+        }
+
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchInitialData();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
 

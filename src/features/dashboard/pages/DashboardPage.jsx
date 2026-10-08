@@ -173,62 +173,67 @@ function DashboardPage() {
 
 
   /* =========================================================
-     LOAD SUMMARY
+     LOAD DASHBOARD DATA
      ========================================================= */
-
-  async function loadDashboardData() {
-    try {
-      setLoading(true);
-      setErrorMessage("");
-
-      const [services, transactions, announcements] = await Promise.all([
-        getAllServices(),
-        getAllTransactions(),
-        getAllAnnouncements()
-      ]);
-
-      setServiceCount(
-        services.filter((item) => item.isActive === true).length
-      );
-
-      setTransactionCount(
-        transactions.filter((item) => item.isActive === true).length
-      );
-
-      setAnnouncementCount(
-        announcements.filter((item) => item.isActive === true).length
-      );
-    } catch (error) {
-      console.error("Dashboard error:", error);
-      setErrorMessage("Unable to load dashboard information.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-
-  /* =========================================================
-     LOAD RECENT UPDATES
-     ========================================================= */
-
-  async function loadRecentUpdates() {
-    try {
-      setRecentLoading(true);
-
-      const activities = await getRecentActivityLogs();
-
-      setRecentActivities(activities.slice(0, 5));
-    } catch (error) {
-      console.error("Recent updates error:", error);
-    } finally {
-      setRecentLoading(false);
-    }
-  }
-
 
   useEffect(() => {
-    loadDashboardData();
-    loadRecentUpdates();
+    let ignore = false;
+
+    async function fetchDashboardData() {
+      try {
+        const [services, transactions, announcements] = await Promise.all([
+          getAllServices(),
+          getAllTransactions(),
+          getAllAnnouncements()
+        ]);
+
+        if (!ignore) {
+          setServiceCount(
+            services.filter((item) => item.isActive === true).length
+          );
+
+          setTransactionCount(
+            transactions.filter((item) => item.isActive === true).length
+          );
+
+          setAnnouncementCount(
+            announcements.filter((item) => item.isActive === true).length
+          );
+        }
+      } catch (error) {
+        console.error("Dashboard error:", error);
+        if (!ignore) {
+          setErrorMessage("Unable to load dashboard information.");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    async function fetchRecentUpdates() {
+      try {
+        const activities = await getRecentActivityLogs();
+
+        if (!ignore) {
+          setRecentActivities(activities.slice(0, 5));
+        }
+      } catch (error) {
+        console.error("Recent updates error:", error);
+      } finally {
+        if (!ignore) {
+          setRecentLoading(false);
+        }
+      }
+    }
+
+    fetchDashboardData();
+    fetchRecentUpdates();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
 

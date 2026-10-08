@@ -73,7 +73,47 @@ function RequirementsPage() {
 
 
   useEffect(() => {
-    loadData();
+    let ignore = false;
+
+    const fetchInitialData = async () => {
+      try {
+        const [
+          requirementData,
+          transactionData
+        ] = await Promise.all([
+          getAllRequirements(),
+          getActiveTransactions()
+        ]);
+
+        if (!ignore) {
+          setRequirements(requirementData);
+          setTransactions(transactionData);
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to load requirements:",
+          error
+        );
+
+        if (!ignore) {
+          setErrorMessage(
+            "Unable to load requirements."
+          );
+        }
+
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchInitialData();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
 

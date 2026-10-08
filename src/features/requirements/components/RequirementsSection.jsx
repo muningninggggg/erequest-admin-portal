@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import {
   getAllRequirements,
@@ -38,7 +38,7 @@ function RequirementsSection({
      LOAD REQUIREMENTS
      ========================================================= */
 
-  const loadRequirements = async () => {
+  const loadRequirements = useCallback(async () => {
     if (!transactionId) {
       setRequirements([]);
       setLoading(false);
@@ -82,11 +82,64 @@ function RequirementsSection({
     } finally {
       setLoading(false);
     }
-  };
+  }, [transactionId]);
 
 
   useEffect(() => {
-    loadRequirements();
+    if (!transactionId) {
+      return;
+    }
+
+    let ignore = false;
+
+    const fetchRequirements = async () => {
+      try {
+        const allRequirements =
+          await getAllRequirements();
+
+        if (!ignore) {
+          const filteredRequirements =
+            allRequirements
+              .filter(
+                (requirement) =>
+                  requirement.transactionId ===
+                  transactionId
+              )
+              .sort(
+                (a, b) =>
+                  (a.displayOrder || 0) -
+                  (b.displayOrder || 0)
+              );
+
+          setRequirements(
+            filteredRequirements
+          );
+        }
+
+      } catch (error) {
+        console.error(
+          "Failed to load requirements:",
+          error
+        );
+
+        if (!ignore) {
+          setErrorMessage(
+            "Unable to load requirements."
+          );
+        }
+
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchRequirements();
+
+    return () => {
+      ignore = true;
+    };
   }, [transactionId]);
 
 

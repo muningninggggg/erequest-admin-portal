@@ -356,3 +356,56 @@ test("Backward Compatibility: System handles mix of legacy, auto, prefixed, and 
   const reqFromNewTx = buildRequirementId("getting_prospectus", "Form 137");
   assert.equal(reqFromNewTx, "getting_prospectus_form_137");
 });
+
+/* =========================================================
+   6. ASYNCHRONOUS LOADING & TRANSACTION SWITCHING RESILIENCE
+   ========================================================= */
+
+test("Async Loading: Transaction switching cancels stale in-flight responses", async () => {
+  let activeState = [];
+  let ignoreTx1 = false;
+  let ignoreTx2 = false;
+
+  // Simulate user viewing Tx1
+  const fetchTx1 = async () => {
+    // Deliberate delay to simulate slower network response
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    if (!ignoreTx1) {
+      activeState = [{ id: "req_tx1", transactionId: "tx_1", text: "Old Transaction Req" }];
+    }
+  };
+
+  // User immediately navigates to Tx2 before Tx1 completes
+  const switchPromise = fetchTx1();
+  ignoreTx1 = true; // Cleanup effect runs on dependency change
+
+  const fetchTx2 = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    if (!ignoreTx2) {
+      activeState = [{ id: "req_tx2", transactionId: "tx_2", text: "New Transaction Req" }];
+    }
+  };
+
+  await Promise.all([switchPromise, fetchTx2()]);
+
+  // Tx1 response must NOT overwrite Tx2 state
+  assert.equal(activeState.length, 1);
+  assert.equal(activeState[0].transactionId, "tx_2");
+  assert.equal(activeState[0].text, "New Transaction Req");
+});
+
+test("Async Loading: Filter isolation ensures only matching transaction children are loaded and sorted", () => {
+  const allRequirements = [
+    { id: "r1", transactionId: "getting_prospectus", displayOrder: 2, text: "B" },
+    { id: "r2", transactionId: "getting_clearance", displayOrder: 1, text: "C" },
+    { id: "r3", transactionId: "getting_prospectus", displayOrder: 1, text: "A" }
+  ];
+
+  const filtered = allRequirements
+    .filter((r) => r.transactionId === "getting_prospectus")
+    .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+  assert.equal(filtered.length, 2);
+  assert.equal(filtered[0].text, "A");
+  assert.equal(filtered[1].text, "B");
+});
