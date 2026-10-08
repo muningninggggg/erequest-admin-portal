@@ -6,7 +6,8 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where
+  where,
+  serverTimestamp
 } from "firebase/firestore";
 
 import {
@@ -244,10 +245,6 @@ export async function addService(
     );
 
 
-  const currentTime =
-    Date.now();
-
-
   await setDoc(
     serviceRef,
     {
@@ -262,10 +259,10 @@ export async function addService(
         true,
 
       createdAt:
-        currentTime,
+        serverTimestamp(),
 
       updatedAt:
-        currentTime
+        serverTimestamp()
 
     }
   );
@@ -354,7 +351,7 @@ export async function updateService(
         cleanDescription,
 
       updatedAt:
-        Date.now()
+        serverTimestamp()
 
     }
   );
@@ -441,7 +438,7 @@ export async function setServiceActiveStatus(
         isActive,
 
       updatedAt:
-        Date.now()
+        serverTimestamp()
 
     }
   );

@@ -4,7 +4,8 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  serverTimestamp
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -203,15 +204,13 @@ export async function addRequirement(
     requirementId
   );
 
-  const currentTime = Date.now();
-
   await setDoc(requirementRef, {
     transactionId: cleanTransactionId,
     requirementText: cleanRequirementText,
     displayOrder: cleanDisplayOrder,
     isActive: true,
-    createdAt: currentTime,
-    updatedAt: currentTime
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */
@@ -284,7 +283,7 @@ export async function updateRequirement(
     transactionId: cleanTransactionId,
     requirementText: cleanRequirementText,
     displayOrder: cleanDisplayOrder,
-    updatedAt: Date.now()
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */
@@ -343,7 +342,7 @@ export async function setRequirementActiveStatus(
 
   await updateDoc(requirementRef, {
     isActive,
-    updatedAt: Date.now()
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */

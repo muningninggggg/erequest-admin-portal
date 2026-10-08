@@ -4,7 +4,8 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  serverTimestamp
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -194,8 +195,6 @@ export async function addProcedureStep(
     procedureId
   );
 
-  const currentTime = Date.now();
-
   await setDoc(procedureRef, {
     transactionId: cleanTransactionId,
     stepNumber: cleanStepNumber,
@@ -206,8 +205,8 @@ export async function addProcedureStep(
     websiteName: cleanWebsiteName,
     websiteUrl: cleanWebsiteUrl,
     isActive: true,
-    createdAt: currentTime,
-    updatedAt: currentTime
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */
@@ -307,7 +306,7 @@ export async function updateProcedureStep(
     imageCaption: cleanImageCaption,
     websiteName: cleanWebsiteName,
     websiteUrl: cleanWebsiteUrl,
-    updatedAt: Date.now()
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */
@@ -373,7 +372,7 @@ export async function setProcedureStepActiveStatus(
 
   await updateDoc(procedureRef, {
     isActive,
-    updatedAt: Date.now()
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */

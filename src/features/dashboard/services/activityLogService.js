@@ -12,6 +12,10 @@ import {
   db
 } from "../../../firebase/firebaseConfig";
 
+import {
+  convertTimestampToDate
+} from "../../../utils/timestampUtils";
+
 
 const ACTIVITY_LOGS_COLLECTION =
   "activity_logs";
@@ -160,53 +164,10 @@ export async function getRecentActivityLogs() {
 
 /* =========================================================
    CONVERT FIRESTORE TIMESTAMP TO JAVASCRIPT DATE
+   (Re-exported for backward compatibility)
    ========================================================= */
 
-function convertTimestampToDate(
-  timestamp
-) {
-
-  if (!timestamp) {
-    return null;
-  }
-
-
-  /*
-   * Firestore Timestamp
-   */
-
-  if (
-    typeof timestamp.toDate ===
-    "function"
-  ) {
-
-    return timestamp.toDate();
-
-  }
-
-
-  /*
-   * Normal JavaScript date / timestamp
-   */
-
-  const date =
-    new Date(timestamp);
-
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-
-    return null;
-
-  }
-
-
-  return date;
-
-}
+export { convertTimestampToDate };
 
 
 /* =========================================================

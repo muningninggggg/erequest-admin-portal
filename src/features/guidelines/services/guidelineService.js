@@ -4,7 +4,8 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  serverTimestamp
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -172,15 +173,13 @@ export async function addGuideline(
     guidelineId
   );
 
-  const currentTime = Date.now();
-
   await setDoc(guidelineRef, {
     transactionId: cleanTransactionId,
     guidelineText: cleanGuidelineText,
     displayOrder: cleanDisplayOrder,
     isActive: true,
-    createdAt: currentTime,
-    updatedAt: currentTime
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */
@@ -253,7 +252,7 @@ export async function updateGuideline(
     transactionId: cleanTransactionId,
     guidelineText: cleanGuidelineText,
     displayOrder: cleanDisplayOrder,
-    updatedAt: Date.now()
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */
@@ -313,7 +312,7 @@ export async function setGuidelineActiveStatus(
 
   await updateDoc(guidelineRef, {
     isActive,
-    updatedAt: Date.now()
+    updatedAt: serverTimestamp()
   });
 
   /* ACTIVITY LOG */

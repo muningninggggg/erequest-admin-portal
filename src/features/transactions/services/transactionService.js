@@ -6,7 +6,8 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where
+  where,
+  serverTimestamp
 } from "firebase/firestore";
 
 import { db } from "../../../firebase/firebaseConfig";
@@ -180,8 +181,6 @@ export async function addTransaction(
     transactionId
   );
 
-  const currentTime = Date.now();
-
   await setDoc(transactionRef, {
     serviceId: cleanServiceId,
     name: cleanName,
@@ -189,8 +188,8 @@ export async function addTransaction(
     officeName: cleanOfficeName,
     officeSchedule: cleanOfficeSchedule,
     isActive: true,
-    createdAt: currentTime,
-    updatedAt: currentTime
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   });
 
   const serviceName =
@@ -250,7 +249,7 @@ export async function updateTransaction(
     description: description.trim(),
     officeName: officeName.trim(),
     officeSchedule: officeSchedule.trim(),
-    updatedAt: Date.now()
+    updatedAt: serverTimestamp()
   });
 
   const serviceName =
@@ -303,7 +302,7 @@ export async function setTransactionActiveStatus(
 
   await updateDoc(transactionRef, {
     isActive,
-    updatedAt: Date.now()
+    updatedAt: serverTimestamp()
   });
 
   await addActivityLog({
