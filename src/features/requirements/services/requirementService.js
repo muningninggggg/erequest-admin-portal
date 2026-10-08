@@ -2,7 +2,6 @@ import {
   collection,
   doc,
   getDocs,
-  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp
@@ -10,6 +9,10 @@ import {
 
 import { db } from "../../../firebase/firebaseConfig";
 import { addActivityLog } from "../../dashboard/services/activityLogService";
+import {
+  buildRequirementId,
+  createDocumentIfAbsent
+} from "../../../utils/idUtils";
 
 const REQUIREMENTS_COLLECTION = "requirements";
 const TRANSACTIONS_COLLECTION = "transactions";
@@ -96,70 +99,6 @@ async function getTransactionName(transactionId) {
 
 
 /* =========================================
-   CREATE ID-FRIENDLY NAME
-   ========================================= */
-
-function createIdName(name) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, "")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-
-/* =========================================
-   GET NEXT REQUIREMENT NUMBER
-   ========================================= */
-
-async function getNextRequirementNumber() {
-  const snapshot = await getDocs(
-    collection(db, REQUIREMENTS_COLLECTION)
-  );
-
-  let highestNumber = 0;
-
-  snapshot.docs.forEach((document) => {
-    const match = document.id.match(/_(\d+)$/);
-
-    if (match) {
-      const number = parseInt(match[1], 10);
-
-      if (number > highestNumber) {
-        highestNumber = number;
-      }
-    }
-  });
-
-  return highestNumber + 1;
-}
-
-
-/* =========================================
-   GENERATE REQUIREMENT ID
-   ========================================= */
-
-async function generateRequirementId(requirementText) {
-  const idName = createIdName(requirementText);
-
-  if (!idName) {
-    throw new Error(
-      "Unable to generate Requirement ID."
-    );
-  }
-
-  const nextNumber = await getNextRequirementNumber();
-
-  const formattedNumber =
-    String(nextNumber).padStart(3, "0");
-
-  return `${idName}_${formattedNumber}`;
-}
-
-
-/* =========================================
    ADD REQUIREMENT
    ========================================= */
 
@@ -193,25 +132,25 @@ export async function addRequirement(
     );
   }
 
-  const requirementId =
-    await generateRequirementId(
-      cleanRequirementText
-    );
-
-  const requirementRef = doc(
-    db,
-    REQUIREMENTS_COLLECTION,
-    requirementId
+  const requirementId = buildRequirementId(
+    cleanTransactionId,
+    cleanRequirementText
   );
 
-  await setDoc(requirementRef, {
-    transactionId: cleanTransactionId,
-    requirementText: cleanRequirementText,
-    displayOrder: cleanDisplayOrder,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
+  await createDocumentIfAbsent(
+    db,
+    REQUIREMENTS_COLLECTION,
+    requirementId,
+    {
+      transactionId: cleanTransactionId,
+      requirementText: cleanRequirementText,
+      displayOrder: cleanDisplayOrder,
+      isActive: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    },
+    `A requirement with the text "${cleanRequirementText}" already exists for this transaction.`
+  );
 
   /* ACTIVITY LOG */
 

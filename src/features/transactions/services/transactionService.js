@@ -2,7 +2,6 @@ import {
   collection,
   doc,
   getDocs,
-  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -12,6 +11,10 @@ import {
 
 import { db } from "../../../firebase/firebaseConfig";
 import { addActivityLog } from "../../dashboard/services/activityLogService";
+import {
+  buildTransactionId,
+  createDocumentIfAbsent
+} from "../../../utils/idUtils";
 
 const TRANSACTIONS_COLLECTION = "transactions";
 const SERVICES_COLLECTION = "services";
@@ -64,68 +67,6 @@ export async function getActiveServices() {
 
 
 /* =========================================
-   CREATE ID-FRIENDLY NAME
-   ========================================= */
-
-function createIdName(name) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, "")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-
-/* =========================================
-   GET NEXT TRANSACTION NUMBER
-   ========================================= */
-
-async function getNextTransactionNumber() {
-  const snapshot = await getDocs(
-    collection(db, TRANSACTIONS_COLLECTION)
-  );
-
-  let highestNumber = 0;
-
-  snapshot.docs.forEach((document) => {
-    const match = document.id.match(/_(\d+)$/);
-
-    if (match) {
-      const number = parseInt(match[1], 10);
-
-      if (number > highestNumber) {
-        highestNumber = number;
-      }
-    }
-  });
-
-  return highestNumber + 1;
-}
-
-
-/* =========================================
-   GENERATE TRANSACTION ID
-   ========================================= */
-
-async function generateTransactionId(name) {
-  const idName = createIdName(name);
-
-  if (!idName) {
-    throw new Error(
-      "Unable to generate Transaction ID from the transaction name."
-    );
-  }
-
-  const nextNumber = await getNextTransactionNumber();
-  const formattedNumber = String(nextNumber).padStart(3, "0");
-
-  return `${idName}_${formattedNumber}`;
-}
-
-
-/* =========================================
    GET SERVICE NAME
    Used for Recent Updates
    ========================================= */
@@ -172,25 +113,24 @@ export async function addTransaction(
     throw new Error("Transaction name is required.");
   }
 
-  const transactionId =
-    await generateTransactionId(cleanName);
+  const transactionId = buildTransactionId(cleanName);
 
-  const transactionRef = doc(
+  await createDocumentIfAbsent(
     db,
     TRANSACTIONS_COLLECTION,
-    transactionId
+    transactionId,
+    {
+      serviceId: cleanServiceId,
+      name: cleanName,
+      description: cleanDescription,
+      officeName: cleanOfficeName,
+      officeSchedule: cleanOfficeSchedule,
+      isActive: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    },
+    `A transaction with the name "${cleanName}" already exists.`
   );
-
-  await setDoc(transactionRef, {
-    serviceId: cleanServiceId,
-    name: cleanName,
-    description: cleanDescription,
-    officeName: cleanOfficeName,
-    officeSchedule: cleanOfficeSchedule,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
 
   const serviceName =
     await getServiceName(cleanServiceId);

@@ -2,7 +2,6 @@ import {
   collection,
   doc,
   getDocs,
-  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -17,6 +16,11 @@ import {
 import {
   addActivityLog
 } from "../../dashboard/services/activityLogService";
+
+import {
+  buildServiceId,
+  createDocumentIfAbsent
+} from "../../../utils/idUtils";
 
 
 const SERVICES_COLLECTION =
@@ -68,145 +72,6 @@ export async function getAllServices() {
 
 
 /* =========================================================
-   CREATE ID-FRIENDLY NAME
-   ========================================================= */
-
-function createIdName(
-  name
-) {
-
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(
-      /[^a-z0-9\s_-]/g,
-      ""
-    )
-    .replace(
-      /\s+/g,
-      "_"
-    )
-    .replace(
-      /_+/g,
-      "_"
-    )
-    .replace(
-      /^_+|_+$/g,
-      ""
-    );
-
-}
-
-
-/* =========================================================
-   GET NEXT SERVICE NUMBER
-   ========================================================= */
-
-async function getNextServiceNumber() {
-
-  const servicesRef =
-    collection(
-      db,
-      SERVICES_COLLECTION
-    );
-
-
-  const snapshot =
-    await getDocs(
-      servicesRef
-    );
-
-
-  let highestNumber = 0;
-
-
-  snapshot.docs.forEach(
-    (document) => {
-
-      const serviceId =
-        document.id;
-
-
-      const match =
-        serviceId.match(
-          /_(\d+)$/
-        );
-
-
-      if (match) {
-
-        const number =
-          parseInt(
-            match[1],
-            10
-          );
-
-
-        if (
-          number >
-          highestNumber
-        ) {
-
-          highestNumber =
-            number;
-
-        }
-
-      }
-
-    }
-  );
-
-
-  return highestNumber + 1;
-
-}
-
-
-/* =========================================================
-   GENERATE SERVICE ID
-   ========================================================= */
-
-async function generateServiceId(
-  name
-) {
-
-  const idName =
-    createIdName(
-      name
-    );
-
-
-  if (!idName) {
-
-    throw new Error(
-      "Unable to generate Service ID."
-    );
-
-  }
-
-
-  const nextNumber =
-    await getNextServiceNumber();
-
-
-  const formattedNumber =
-    String(
-      nextNumber
-    ).padStart(
-      3,
-      "0"
-    );
-
-
-  return (
-    `${idName}_${formattedNumber}`
-  );
-
-}
-
-
-/* =========================================================
    ADD NEW SERVICE
    ========================================================= */
 
@@ -232,21 +97,13 @@ export async function addService(
 
 
   const serviceId =
-    await generateServiceId(
-      cleanName
-    );
+    buildServiceId(cleanName);
 
 
-  const serviceRef =
-    doc(
-      db,
-      SERVICES_COLLECTION,
-      serviceId
-    );
-
-
-  await setDoc(
-    serviceRef,
+  await createDocumentIfAbsent(
+    db,
+    SERVICES_COLLECTION,
+    serviceId,
     {
 
       name:
@@ -264,7 +121,8 @@ export async function addService(
       updatedAt:
         serverTimestamp()
 
-    }
+    },
+    `A service with the name "${cleanName}" already exists.`
   );
 
 

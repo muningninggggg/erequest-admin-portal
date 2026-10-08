@@ -1,8 +1,8 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
-  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp
@@ -10,6 +10,10 @@ import {
 
 import { db } from "../../../firebase/firebaseConfig";
 import { addActivityLog } from "../../dashboard/services/activityLogService";
+import {
+  buildGuidelineId,
+  createDocumentIfAbsent
+} from "../../../utils/idUtils";
 
 const GUIDELINES_COLLECTION = "department_guidelines";
 const TRANSACTIONS_COLLECTION = "transactions";
@@ -69,68 +73,6 @@ async function getTransactionName(transactionId) {
 
 
 /* =========================================
-   CREATE ID-FRIENDLY NAME
-   ========================================= */
-
-function createIdName(name) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, "")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-
-/* =========================================
-   GET NEXT GUIDELINE NUMBER
-   ========================================= */
-
-async function getNextGuidelineNumber() {
-  const snapshot = await getDocs(
-    collection(db, GUIDELINES_COLLECTION)
-  );
-
-  let highestNumber = 0;
-
-  snapshot.docs.forEach((document) => {
-    const match = document.id.match(/_(\d+)$/);
-
-    if (match) {
-      const number = parseInt(match[1], 10);
-
-      if (number > highestNumber) {
-        highestNumber = number;
-      }
-    }
-  });
-
-  return highestNumber + 1;
-}
-
-
-/* =========================================
-   GENERATE GUIDELINE ID
-   ========================================= */
-
-async function generateGuidelineId(guidelineText) {
-  const idName = createIdName(guidelineText);
-
-  if (!idName) {
-    throw new Error(
-      "Unable to generate Guideline ID."
-    );
-  }
-
-  const nextNumber = await getNextGuidelineNumber();
-  const formattedNumber = String(nextNumber).padStart(3, "0");
-
-  return `${idName}_${formattedNumber}`;
-}
-
-
-/* =========================================
    ADD GUIDELINE
    ========================================= */
 
@@ -164,23 +106,36 @@ export async function addGuideline(
     );
   }
 
-  const guidelineId =
-    await generateGuidelineId(cleanGuidelineText);
+  let parentServiceId = cleanTransactionId;
+  try {
+    const txDocRef = doc(db, TRANSACTIONS_COLLECTION, cleanTransactionId);
+    const txSnap = await getDoc(txDocRef);
+    if (txSnap.exists() && txSnap.data()?.serviceId) {
+      parentServiceId = txSnap.data().serviceId;
+    }
+  } catch {
+    // Fall back to cleanTransactionId if lookup fails
+  }
 
-  const guidelineRef = doc(
-    db,
-    GUIDELINES_COLLECTION,
-    guidelineId
+  const guidelineId = buildGuidelineId(
+    parentServiceId,
+    cleanGuidelineText
   );
 
-  await setDoc(guidelineRef, {
-    transactionId: cleanTransactionId,
-    guidelineText: cleanGuidelineText,
-    displayOrder: cleanDisplayOrder,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
+  await createDocumentIfAbsent(
+    db,
+    GUIDELINES_COLLECTION,
+    guidelineId,
+    {
+      transactionId: cleanTransactionId,
+      guidelineText: cleanGuidelineText,
+      displayOrder: cleanDisplayOrder,
+      isActive: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    },
+    `A guideline with the text "${cleanGuidelineText}" already exists for this service.`
+  );
 
   /* ACTIVITY LOG */
 

@@ -2,7 +2,6 @@ import {
   collection,
   doc,
   getDocs,
-  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp
@@ -10,6 +9,10 @@ import {
 
 import { db } from "../../../firebase/firebaseConfig";
 import { addActivityLog } from "../../dashboard/services/activityLogService";
+import {
+  buildProcedureStepId,
+  createDocumentIfAbsent
+} from "../../../utils/idUtils";
 
 const PROCEDURES_COLLECTION = "procedure_steps";
 const TRANSACTIONS_COLLECTION = "transactions";
@@ -69,68 +72,6 @@ async function getTransactionName(transactionId) {
 
 
 /* =========================================
-   CREATE ID-FRIENDLY NAME
-   ========================================= */
-
-function createIdName(name) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, "")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-
-/* =========================================
-   GET NEXT PROCEDURE NUMBER
-   ========================================= */
-
-async function getNextProcedureNumber() {
-  const snapshot = await getDocs(
-    collection(db, PROCEDURES_COLLECTION)
-  );
-
-  let highestNumber = 0;
-
-  snapshot.docs.forEach((document) => {
-    const match = document.id.match(/_(\d+)$/);
-
-    if (match) {
-      const number = parseInt(match[1], 10);
-
-      if (number > highestNumber) {
-        highestNumber = number;
-      }
-    }
-  });
-
-  return highestNumber + 1;
-}
-
-
-/* =========================================
-   GENERATE PROCEDURE ID
-   ========================================= */
-
-async function generateProcedureId(instruction) {
-  const idName = createIdName(instruction);
-
-  if (!idName) {
-    throw new Error(
-      "Unable to generate Procedure ID."
-    );
-  }
-
-  const nextNumber = await getNextProcedureNumber();
-  const formattedNumber = String(nextNumber).padStart(3, "0");
-
-  return `${idName}_${formattedNumber}`;
-}
-
-
-/* =========================================
    ADD PROCEDURE STEP
    ========================================= */
 
@@ -186,28 +127,30 @@ export async function addProcedureStep(
     );
   }
 
-  const procedureId =
-    await generateProcedureId(cleanInstruction);
-
-  const procedureRef = doc(
-    db,
-    PROCEDURES_COLLECTION,
-    procedureId
+  const procedureId = buildProcedureStepId(
+    cleanTransactionId,
+    cleanStepNumber
   );
 
-  await setDoc(procedureRef, {
-    transactionId: cleanTransactionId,
-    stepNumber: cleanStepNumber,
-    instruction: cleanInstruction,
-    remoteImageUrl: cleanRemoteImageUrl,
-    localImagePath: cleanLocalImagePath,
-    imageCaption: cleanImageCaption,
-    websiteName: cleanWebsiteName,
-    websiteUrl: cleanWebsiteUrl,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
+  await createDocumentIfAbsent(
+    db,
+    PROCEDURES_COLLECTION,
+    procedureId,
+    {
+      transactionId: cleanTransactionId,
+      stepNumber: cleanStepNumber,
+      instruction: cleanInstruction,
+      remoteImageUrl: cleanRemoteImageUrl,
+      localImagePath: cleanLocalImagePath,
+      imageCaption: cleanImageCaption,
+      websiteName: cleanWebsiteName,
+      websiteUrl: cleanWebsiteUrl,
+      isActive: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    },
+    `Step number ${cleanStepNumber} already exists for this transaction.`
+  );
 
   /* ACTIVITY LOG */
 
